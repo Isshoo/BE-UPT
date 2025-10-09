@@ -1,5 +1,7 @@
 import express from 'express';
 import authRoutes from './auth.routes.js';
+import marketplaceRoutes from './marketplace.routes.js';
+import assessmentRoutes from './assessment.routes.js';
 
 const router = express.Router();
 
@@ -14,11 +16,13 @@ router.get('/health', (req, res) => {
 
 // Routes
 router.use('/auth', authRoutes);
+router.use('/marketplace', marketplaceRoutes);
+router.use('/assessment', assessmentRoutes);
 
 // TODO: Add more routes
-// router.use('/marketplace', marketplaceRoutes);
 // router.use('/umkm', umkmRoutes);
 // router.use('/users', userRoutes);
 // router.use('/notifications', notificationRoutes);
+// router.use('/dashboard', dashboardRoutes);
 
 export default router;
