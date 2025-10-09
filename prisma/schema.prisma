@@ -1,0 +1,249 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  DOSEN
+  USER
+}
+
+enum StatusEvent {
+  DRAFT
+  TERBUKA
+  PERSIAPAN
+  BERLANGSUNG
+  SELESAI
+}
+
+enum TipeUsaha {
+  MAHASISWA
+  UMKM_LUAR
+}
+
+enum StatusTahapUmkm {
+  BELUM_DIMULAI
+  SEDANG_PROSES
+  MENUNGGU_VALIDASI
+  SELESAI
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  nama      String
+  role      Role     @default(USER)
+  fakultas  String?
+  prodi     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  usaha                Usaha[]
+  umkm                 Umkm[]
+  riwayatMarketplace   RiwayatMarketplace[]
+  notifikasi           Notifikasi[]
+  
+  // Relasi Dosen
+  usahaBimbingan       Usaha[]              @relation("DosenPembimbing")
+  kategoriPenilaian    KategoriPenilaian[]  @relation("DosenPenilai")
+  nilaiPenilaian       NilaiPenilaian[]
+
+  @@map("users")
+}
+
+model EventMarketplace {
+  id                 String       @id @default(cuid())
+  nama               String
+  deskripsi          String       @db.Text
+  semester           String
+  tahunAjaran        String
+  lokasi             String
+  tanggalPelaksanaan DateTime
+  mulaiPendaftaran   DateTime
+  akhirPendaftaran   DateTime
+  kuotaPeserta       Int
+  status             StatusEvent  @default(DRAFT)
+  gambarLayout       String?
+  terkunci           Boolean      @default(false)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  // Relations
+  sponsor              Sponsor[]
+  kategoriPenilaian    KategoriPenilaian[]
+  usaha                Usaha[]
+  riwayatMarketplace   RiwayatMarketplace[]
+
+  @@map("event_marketplace")
+}
+
+model Sponsor {
+  id        String   @id @default(cuid())
+  nama      String
+  logo      String
+  eventId   String
+  createdAt DateTime @default(now())
+
+  event EventMarketplace @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@map("sponsor")
+}
+
+model KategoriPenilaian {
+  id          String   @id @default(cuid())
+  nama        String
+  deskripsi   String?
+  eventId     String
+  pemenangId  String?  @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  event       EventMarketplace    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  penilai     User[]              @relation("DosenPenilai")
+  kriteria    KriteriaPenilaian[]
+  nilai       NilaiPenilaian[]
+  pemenang    Usaha?              @relation("PemenangKategori", fields: [pemenangId], references: [id])
+
+  @@map("kategori_penilaian")
+}
+
+model KriteriaPenilaian {
+  id         String   @id @default(cuid())
+  nama       String
+  bobot      Int // Persentase (0-100)
+  kategoriId String
+  createdAt  DateTime @default(now())
+
+  kategori KategoriPenilaian @relation(fields: [kategoriId], references: [id], onDelete: Cascade)
+  nilai    NilaiPenilaian[]
+
+  @@map("kriteria_penilaian")
+}
+
+model Usaha {
+  id             String      @id @default(cuid())
+  namaProduk     String
+  kategori       String
+  deskripsi      String      @db.Text
+  tipeUsaha      TipeUsaha
+  eventId        String
+  pemilikId      String
+  
+  // Untuk Mahasiswa
+  anggota        Json? // Array of {nama, nim}
+  ketuaId        String? // NIM ketua
+  fakultas       String?
+  prodi          String?
+  pembimbingId   String?
+  mataKuliah     String?
+  
+  // Untuk UMKM Luar
+  namaPemilik    String?
+  alamat         String?
+  
+  telepon        String
+  nomorBooth     String?
+  disetujui      Boolean      @default(false)
+  tanggalDisetujui DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  pemilik            User                  @relation(fields: [pemilikId], references: [id])
+  event              EventMarketplace      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  pembimbing         User?                 @relation("DosenPembimbing", fields: [pembimbingId], references: [id])
+  nilai              NilaiPenilaian[]
+  kategoriDimenangkan KategoriPenilaian[] @relation("PemenangKategori")
+
+  @@map("usaha")
+}
+
+model NilaiPenilaian {
+  id         String   @id @default(cuid())
+  nilai      Int // 0-100
+  usahaId    String
+  kategoriId String
+  kriteriaId String
+  penilaiId  String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  usaha    Usaha              @relation(fields: [usahaId], references: [id], onDelete: Cascade)
+  kategori KategoriPenilaian  @relation(fields: [kategoriId], references: [id], onDelete: Cascade)
+  kriteria KriteriaPenilaian  @relation(fields: [kriteriaId], references: [id], onDelete: Cascade)
+  penilai  User               @relation(fields: [penilaiId], references: [id])
+
+  @@unique([usahaId, kategoriId, kriteriaId])
+  @@map("nilai_penilaian")
+}
+
+model Umkm {
+  id           String   @id @default(cuid())
+  nama         String
+  kategori     String
+  deskripsi    String   @db.Text
+  namaPemilik  String
+  alamat       String
+  telepon      String
+  userId       String
+  tahapSaatIni Int      @default(1) // 1-4
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user   User        @relation(fields: [userId], references: [id])
+  tahap  TahapUmkm[]
+
+  @@map("umkm")
+}
+
+model TahapUmkm {
+  id              String           @id @default(cuid())
+  umkmId          String
+  tahap           Int // 1: Ide Bisnis, 2: Produk, 3: Legalitas, 4: Marketing
+  status          StatusTahapUmkm  @default(BELUM_DIMULAI)
+  file            Json? // Array of file URLs
+  catatan         String?          @db.Text
+  tanggalSubmit   DateTime?
+  tanggalValidasi DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  umkm Umkm @relation(fields: [umkmId], references: [id], onDelete: Cascade)
+
+  @@unique([umkmId, tahap])
+  @@map("tahap_umkm")
+}
+
+model RiwayatMarketplace {
+  id        String   @id @default(cuid())
+  userId    String
+  eventId   String
+  usahaId   String
+  createdAt DateTime @default(now())
+
+  user  User             @relation(fields: [userId], references: [id])
+  event EventMarketplace @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+  @@map("riwayat_marketplace")
+}
+
+model Notifikasi {
+  id        String   @id @default(cuid())
+  userId    String
+  judul     String
+  pesan     String   @db.Text
+  link      String?
+  sudahBaca Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifikasi")
+}
