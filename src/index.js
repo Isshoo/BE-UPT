@@ -48,27 +48,27 @@ app.use(ErrorHandler.notFound);
 app.use(ErrorHandler.handle);
 
 const startServer = () => {
-  // Start server
-  app.listen(PORT, () => {
-    console.log(`
-╔═══════════════════════════════════════╗
-║                                       ║
-║   🚀 Server UPT-PIK Backend           ║
-║                                       ║
-║   Port: ${PORT}                          ║
-║   Environment: ${process.env.NODE_ENV || 'development'}            ║
-║   URL: http://localhost:${PORT}          ║
-║   API: http://localhost:${PORT}/api      ║
-║                                       ║
-╚═══════════════════════════════════════╝
-  `);
-  });
-
-  // Handle unhandled promise rejections
-  process.on('unhandledRejection', (err) => {
-    console.error('❌ Unhandled Promise Rejection:', err);
+  try {
+    if (process.env.NODE_ENV !== 'production') {
+      app.listen(PORT, () => {
+        console.log(`
+        ╔╔═══════════════════════════════════════╗
+        ╔║                                       ║
+        ╔║   🚀 Server UPT-PIK Backend           ║
+        ╔║                                       ║
+        ╔║   Port: ${PORT}                          ║
+        ╔║   Environment: ${process.env.NODE_ENV || 'development'}            ║
+        ╔║   URL: http://localhost:${PORT}          ║
+        ╔║   API: http://localhost:${PORT}/api      ║
+        ╔║                                       ║
+        ╔╚═══════════════════════════════════════╝
+      `);
+      });
+    }
+  } catch (error) {
+    console.error('❌ Unhandled Promise Rejection:', error);
     process.exit(1);
-  });
+  }
 };
 startServer();
 
