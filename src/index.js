@@ -47,29 +47,46 @@ app.use('/api', routes);
 app.use(ErrorHandler.notFound);
 app.use(ErrorHandler.handle);
 
+// Function untuk start traditional server
 const startServer = () => {
   try {
-    if (process.env.NODE_ENV !== 'production') {
-      app.listen(PORT, () => {
-        console.log(`
-        ╔╔═══════════════════════════════════════╗
-        ╔║                                       ║
-        ╔║   🚀 Server UPT-PIK Backend           ║
-        ╔║                                       ║
-        ╔║   Port: ${PORT}                          ║
-        ╔║   Environment: ${process.env.NODE_ENV || 'development'}            ║
-        ╔║   URL: http://localhost:${PORT}          ║
-        ╔║   API: http://localhost:${PORT}/api      ║
-        ╔║                                       ║
-        ╔╚═══════════════════════════════════════╝
+    app.listen(PORT, () => {
+      console.log(`
+╔═══════════════════════════════════════╗
+║                                       ║
+║   🚀 Server UPT-PIK Backend           ║
+║                                       ║
+║   Port: ${PORT}                          ║
+║   Environment: ${process.env.NODE_ENV || 'development'}            ║
+║   URL: http://localhost:${PORT}          ║
+║   API: http://localhost:${PORT}/api      ║
+║                                       ║
+╚═══════════════════════════════════════╝
       `);
-      });
-    }
+    });
+
+    // Handle unhandled promise rejections
+    process.on('unhandledRejection', (err) => {
+      console.error('❌ Unhandled Promise Rejection:', err);
+      process.exit(1);
+    });
   } catch (error) {
-    console.error('❌ Unhandled Promise Rejection:', error);
+    console.error('❌ Error starting server:', error);
     process.exit(1);
   }
 };
-startServer();
 
+// Deteksi environment: serverless atau traditional server
+const isServerless =
+  process.env.VERCEL ||
+  process.env.AWS_LAMBDA_FUNCTION_NAME ||
+  process.env.NETLIFY ||
+  process.env.FUNCTION_NAME;
+
+// Hanya start server jika BUKAN serverless environment
+if (!isServerless) {
+  startServer();
+}
+
+// Export app untuk serverless platforms (Vercel, Netlify, AWS Lambda, dll)
 export default app;
