@@ -3,6 +3,7 @@ import authRoutes from './auth.routes.js';
 import marketplaceRoutes from './marketplace.routes.js';
 import assessmentRoutes from './assessment.routes.js';
 import userRoutes from './user.routes.js';
+import umkmRoutes from './umkm.routes.js';
 
 const router = express.Router();
 
@@ -20,5 +21,6 @@ router.use('/auth', authRoutes);
 router.use('/marketplace', marketplaceRoutes);
 router.use('/assessment', assessmentRoutes);
 router.use('/users', userRoutes);
+router.use('/umkm', umkmRoutes);
 
 export default router;
