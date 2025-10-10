@@ -35,7 +35,6 @@ export default [
       semi: ['error', 'always'],
       quotes: ['error', 'single'],
       indent: ['error', 2],
-      'comma-dangle': ['error', 'always-multiline'],
 
       // ⚙️ Express & Node best practices
       'handle-callback-err': 'warn',
