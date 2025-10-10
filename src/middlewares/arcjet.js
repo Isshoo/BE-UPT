@@ -1,4 +1,5 @@
 import { aj } from '../config/index.js';
+import { ApiResponse } from '../utils/response.js';
 
 // Arcjet middleware for rate limiting, bot detection, and security
 export const arcjetMiddleware = async (req, res, next) => {
@@ -10,20 +11,23 @@ export const arcjetMiddleware = async (req, res, next) => {
     // Check if the request is denied
     if (decision.isDenied()) {
       if (decision.reason.isRateLimit()) {
-        res.status(429).json({
-          error: 'Too Many Requests',
-          message: 'Rate limit exceeded. Please try again later.',
-        });
+        return ApiResponse.error(
+          res,
+          'Terlalu banyak permintaan. Silakan coba lagi nanti.',
+          429
+        );
       } else if (decision.reason.isBot()) {
-        res.status(403).json({
-          error: 'Bot Access Denied',
-          message: 'Automated requests are not allowed.',
-        });
+        return ApiResponse.error(
+          res,
+          'Akses ditolak oleh kebijakan keamanan.',
+          403
+        );
       } else {
-        res.status(403).json({
-          error: 'Forbidden',
-          message: 'Access denied by security policy.',
-        });
+        return ApiResponse.error(
+          res,
+          'Akses ditolak oleh kebijakan keamanan.',
+          403
+        );
       }
     }
 
@@ -33,10 +37,11 @@ export const arcjetMiddleware = async (req, res, next) => {
         (result) => result.reason.isBot() && result.reason.isSpoofed()
       )
     ) {
-      res.status(403).json({
-        error: 'Spoofed Bot Detected',
-        message: 'Malicious activity detected.',
-      });
+      return ApiResponse.error(
+        res,
+        'Aktivitas mencurigakan terdeteksi. Akses ditolak oleh kebijakan keamanan.',
+        403
+      );
     }
 
     next();
