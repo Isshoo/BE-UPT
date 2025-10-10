@@ -23,26 +23,26 @@ router.delete('/:id', umkmController.deleteUmkm);
 router.post(
   '/:umkmId/stages/:tahap/files',
   uploadMultiple.array('files', 5),
-  umkmController.uploadStageFiles
+  umkmController.uploadStageFiles,
 );
 
 router.post(
   '/:umkmId/stages/:tahap/validate-request',
-  umkmController.requestValidation
+  umkmController.requestValidation,
 );
 
 // Admin only - Validate stage
 router.post(
   '/:umkmId/stages/:tahap/validate',
   AuthMiddleware.authorize('ADMIN'),
-  umkmController.validateStage
+  umkmController.validateStage,
 );
 
 // Admin only - Statistics
 router.get(
   '/statistics/overview',
   AuthMiddleware.authorize('ADMIN'),
-  umkmController.getStatistics
+  umkmController.getStatistics,
 );
 
 export default router;

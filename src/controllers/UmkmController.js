@@ -26,7 +26,7 @@ export class UmkmController {
         result.pagination.page,
         result.pagination.limit,
         result.pagination.total,
-        'Data UMKM berhasil diambil'
+        'Data UMKM berhasil diambil',
       );
     } catch (error) {
       next(error);
@@ -45,7 +45,7 @@ export class UmkmController {
         result.pagination.page,
         result.pagination.limit,
         result.pagination.total,
-        'Data UMKM Anda berhasil diambil'
+        'Data UMKM Anda berhasil diambil',
       );
     } catch (error) {
       next(error);
@@ -57,7 +57,7 @@ export class UmkmController {
       const umkm = await this.umkmService.getUmkmById(
         req.params.id,
         req.user?.id,
-        req.user?.role
+        req.user?.role,
       );
       return ApiResponse.success(res, umkm, 'Detail UMKM berhasil diambil');
     } catch (error) {
@@ -70,7 +70,7 @@ export class UmkmController {
       const umkm = await this.umkmService.updateUmkm(
         req.params.id,
         req.body,
-        req.user.id
+        req.user.id,
       );
       return ApiResponse.success(res, umkm, 'UMKM berhasil diupdate');
     } catch (error) {
@@ -83,7 +83,7 @@ export class UmkmController {
       const result = await this.umkmService.deleteUmkm(
         req.params.id,
         req.user.id,
-        req.user.role
+        req.user.role,
       );
       return ApiResponse.success(res, result, 'UMKM berhasil dihapus');
     } catch (error) {
@@ -108,7 +108,7 @@ export class UmkmController {
         req.params.umkmId,
         req.params.tahap,
         fileUrls,
-        req.user.id
+        req.user.id,
       );
 
       return ApiResponse.success(res, stage, 'File berhasil diupload');
@@ -122,12 +122,12 @@ export class UmkmController {
       const stage = await this.umkmService.requestValidation(
         req.params.umkmId,
         req.params.tahap,
-        req.user.id
+        req.user.id,
       );
       return ApiResponse.success(
         res,
         stage,
-        'Request validasi berhasil dikirim'
+        'Request validasi berhasil dikirim',
       );
     } catch (error) {
       next(error);
@@ -141,12 +141,12 @@ export class UmkmController {
         req.params.umkmId,
         req.params.tahap,
         isApproved,
-        catatan
+        catatan,
       );
       return ApiResponse.success(
         res,
         umkm,
-        isApproved ? 'Tahap berhasil divalidasi' : 'Tahap ditolak'
+        isApproved ? 'Tahap berhasil divalidasi' : 'Tahap ditolak',
       );
     } catch (error) {
       next(error);

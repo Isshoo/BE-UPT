@@ -12,13 +12,13 @@ export class AssessmentController {
     try {
       const kategori = await this.assessmentService.createKategori(
         req.params.eventId,
-        req.body
+        req.body,
       );
       return ApiResponse.success(
         res,
         kategori,
         'Kategori penilaian berhasil dibuat',
-        201
+        201,
       );
     } catch (error) {
       next(error);
@@ -28,12 +28,12 @@ export class AssessmentController {
   getKategoriByEvent = async (req, res, next) => {
     try {
       const kategori = await this.assessmentService.getKategoriByEvent(
-        req.params.eventId
+        req.params.eventId,
       );
       return ApiResponse.success(
         res,
         kategori,
-        'Data kategori penilaian berhasil diambil'
+        'Data kategori penilaian berhasil diambil',
       );
     } catch (error) {
       next(error);
@@ -43,12 +43,12 @@ export class AssessmentController {
   getKategoriById = async (req, res, next) => {
     try {
       const kategori = await this.assessmentService.getKategoriById(
-        req.params.kategoriId
+        req.params.kategoriId,
       );
       return ApiResponse.success(
         res,
         kategori,
-        'Detail kategori penilaian berhasil diambil'
+        'Detail kategori penilaian berhasil diambil',
       );
     } catch (error) {
       next(error);
@@ -59,12 +59,12 @@ export class AssessmentController {
     try {
       const kategori = await this.assessmentService.updateKategori(
         req.params.kategoriId,
-        req.body
+        req.body,
       );
       return ApiResponse.success(
         res,
         kategori,
-        'Kategori penilaian berhasil diupdate'
+        'Kategori penilaian berhasil diupdate',
       );
     } catch (error) {
       next(error);
@@ -74,12 +74,12 @@ export class AssessmentController {
   deleteKategori = async (req, res, next) => {
     try {
       const result = await this.assessmentService.deleteKategori(
-        req.params.kategoriId
+        req.params.kategoriId,
       );
       return ApiResponse.success(
         res,
         result,
-        'Kategori penilaian berhasil dihapus'
+        'Kategori penilaian berhasil dihapus',
       );
     } catch (error) {
       next(error);
@@ -92,7 +92,7 @@ export class AssessmentController {
     try {
       const score = await this.assessmentService.submitScore(
         req.body,
-        req.user.id
+        req.user.id,
       );
       return ApiResponse.success(res, score, 'Nilai berhasil disimpan');
     } catch (error) {
@@ -103,7 +103,7 @@ export class AssessmentController {
   getScoresByKategori = async (req, res, next) => {
     try {
       const result = await this.assessmentService.getScoresByKategori(
-        req.params.kategoriId
+        req.params.kategoriId,
       );
       return ApiResponse.success(res, result, 'Data nilai berhasil diambil');
     } catch (error) {
@@ -115,7 +115,7 @@ export class AssessmentController {
     try {
       const kategori = await this.assessmentService.setWinner(
         req.params.kategoriId,
-        req.body.usahaId
+        req.body.usahaId,
       );
       return ApiResponse.success(res, kategori, 'Pemenang berhasil ditetapkan');
     } catch (error) {
@@ -128,12 +128,12 @@ export class AssessmentController {
   getKategoriByDosen = async (req, res, next) => {
     try {
       const kategori = await this.assessmentService.getKategoriByDosen(
-        req.user.id
+        req.user.id,
       );
       return ApiResponse.success(
         res,
         kategori,
-        'Data kategori penilaian berhasil diambil'
+        'Data kategori penilaian berhasil diambil',
       );
     } catch (error) {
       next(error);
@@ -144,12 +144,12 @@ export class AssessmentController {
     try {
       const businesses = await this.assessmentService.getMentoredBusinesses(
         req.user.id,
-        req.query.eventId
+        req.query.eventId,
       );
       return ApiResponse.success(
         res,
         businesses,
-        'Data usaha bimbingan berhasil diambil'
+        'Data usaha bimbingan berhasil diambil',
       );
     } catch (error) {
       next(error);
@@ -160,12 +160,12 @@ export class AssessmentController {
     try {
       const business = await this.assessmentService.approveMentoredBusiness(
         req.params.businessId,
-        req.user.id
+        req.user.id,
       );
       return ApiResponse.success(
         res,
         business,
-        'Usaha mahasiswa berhasil disetujui'
+        'Usaha mahasiswa berhasil disetujui',
       );
     } catch (error) {
       next(error);

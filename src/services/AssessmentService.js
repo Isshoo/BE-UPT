@@ -171,7 +171,7 @@ export class AssessmentService {
     const isPenilai = kategori.penilai.some((p) => p.id === penilaiId);
     if (!isPenilai) {
       const error = new Error(
-        'Anda tidak memiliki akses untuk menilai kategori ini'
+        'Anda tidak memiliki akses untuk menilai kategori ini',
       );
       error.statusCode = 403;
       throw error;
@@ -180,7 +180,7 @@ export class AssessmentService {
     // Check if event is ongoing
     if (kategori.event.status !== 'BERLANGSUNG') {
       const error = new Error(
-        'Penilaian hanya dapat dilakukan saat event berlangsung'
+        'Penilaian hanya dapat dilakukan saat event berlangsung',
       );
       error.statusCode = 400;
       throw error;
@@ -299,7 +299,7 @@ export class AssessmentService {
           totalScore: Math.round(totalScore * 100) / 100,
           scoreDetails,
         };
-      })
+      }),
     );
 
     // Sort by total score descending

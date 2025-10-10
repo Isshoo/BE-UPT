@@ -20,7 +20,7 @@ export class ValidationMiddleware {
           res,
           'Validasi gagal',
           400,
-          errors
+          errors,
         );
       }
     };

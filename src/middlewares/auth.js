@@ -11,7 +11,7 @@ export class AuthMiddleware {
         return ApiResponse.error(
           res,
           'Token tidak ditemukan',
-          401
+          401,
         );
       }
 
@@ -35,7 +35,7 @@ export class AuthMiddleware {
         return ApiResponse.error(
           res,
           'User tidak ditemukan',
-          401
+          401,
         );
       }
 
@@ -45,7 +45,7 @@ export class AuthMiddleware {
       return ApiResponse.error(
         res,
         'Token tidak valid',
-        401
+        401,
       );
     }
   }
@@ -56,7 +56,7 @@ export class AuthMiddleware {
         return ApiResponse.error(
           res,
           'Unauthorized',
-          401
+          401,
         );
       }
 
@@ -64,7 +64,7 @@ export class AuthMiddleware {
         return ApiResponse.error(
           res,
           'Anda tidak memiliki akses',
-          403
+          403,
         );
       }
 

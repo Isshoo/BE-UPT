@@ -14,7 +14,7 @@ export class MarketplaceController {
     try {
       const event = await this.marketplaceService.createEvent(
         req.body,
-        req.user.id
+        req.user.id,
       );
       return ApiResponse.success(res, event, 'Event berhasil dibuat', 201);
     } catch (error) {
@@ -31,7 +31,7 @@ export class MarketplaceController {
         result.pagination.page,
         result.pagination.limit,
         result.pagination.total,
-        'Data event berhasil diambil'
+        'Data event berhasil diambil',
       );
     } catch (error) {
       next(error);
@@ -43,7 +43,7 @@ export class MarketplaceController {
       const event = await this.marketplaceService.getEventById(
         req.params.id,
         req.user?.id,
-        req.user?.role
+        req.user?.role,
       );
       return ApiResponse.success(res, event, 'Detail event berhasil diambil');
     } catch (error) {
@@ -55,7 +55,7 @@ export class MarketplaceController {
     try {
       const event = await this.marketplaceService.updateEvent(
         req.params.id,
-        req.body
+        req.body,
       );
       return ApiResponse.success(res, event, 'Event berhasil diupdate');
     } catch (error) {
@@ -100,7 +100,7 @@ export class MarketplaceController {
 
       const event = await this.marketplaceService.uploadLayout(
         req.params.id,
-        req.file.path
+        req.file.path,
       );
       return ApiResponse.success(res, event, 'Layout berhasil diupload');
     } catch (error) {
@@ -114,13 +114,13 @@ export class MarketplaceController {
     try {
       const sponsor = await this.marketplaceService.addSponsor(
         req.params.eventId,
-        req.body
+        req.body,
       );
       return ApiResponse.success(
         res,
         sponsor,
         'Sponsor berhasil ditambahkan',
-        201
+        201,
       );
     } catch (error) {
       next(error);
@@ -131,7 +131,7 @@ export class MarketplaceController {
     try {
       const sponsor = await this.marketplaceService.updateSponsor(
         req.params.sponsorId,
-        req.body
+        req.body,
       );
       return ApiResponse.success(res, sponsor, 'Sponsor berhasil diupdate');
     } catch (error) {
@@ -142,7 +142,7 @@ export class MarketplaceController {
   deleteSponsor = async (req, res, next) => {
     try {
       const result = await this.marketplaceService.deleteSponsor(
-        req.params.sponsorId
+        req.params.sponsorId,
       );
       return ApiResponse.success(res, result, 'Sponsor berhasil dihapus');
     } catch (error) {
@@ -157,7 +157,7 @@ export class MarketplaceController {
       const business = await this.businessService.registerBusiness(
         req.body,
         req.params.eventId,
-        req.user.id
+        req.user.id,
       );
       return ApiResponse.success(res, business, 'Pendaftaran berhasil', 201);
     } catch (error) {
@@ -169,12 +169,12 @@ export class MarketplaceController {
     try {
       const businesses = await this.businessService.getBusinessesByEvent(
         req.params.eventId,
-        req.query
+        req.query,
       );
       return ApiResponse.success(
         res,
         businesses,
-        'Data peserta berhasil diambil'
+        'Data peserta berhasil diambil',
       );
     } catch (error) {
       next(error);
@@ -185,7 +185,7 @@ export class MarketplaceController {
     try {
       const business = await this.businessService.approveBusiness(
         req.params.businessId,
-        req.user.id
+        req.user.id,
       );
       return ApiResponse.success(res, business, 'Peserta berhasil disetujui');
     } catch (error) {
@@ -197,12 +197,12 @@ export class MarketplaceController {
     try {
       const business = await this.businessService.assignBoothNumber(
         req.params.businessId,
-        req.body.nomorBooth
+        req.body.nomorBooth,
       );
       return ApiResponse.success(
         res,
         business,
-        'Nomor booth berhasil ditetapkan'
+        'Nomor booth berhasil ditetapkan',
       );
     } catch (error) {
       next(error);

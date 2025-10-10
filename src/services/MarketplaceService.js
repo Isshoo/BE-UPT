@@ -25,7 +25,7 @@ export class MarketplaceService {
 
     if (regStart >= regEnd) {
       const error = new Error(
-        'Tanggal mulai pendaftaran harus sebelum tanggal akhir'
+        'Tanggal mulai pendaftaran harus sebelum tanggal akhir',
       );
       error.statusCode = 400;
       throw error;
@@ -33,7 +33,7 @@ export class MarketplaceService {
 
     if (regEnd >= eventDate) {
       const error = new Error(
-        'Tanggal akhir pendaftaran harus sebelum tanggal pelaksanaan'
+        'Tanggal akhir pendaftaran harus sebelum tanggal pelaksanaan',
       );
       error.statusCode = 400;
       throw error;
@@ -54,28 +54,28 @@ export class MarketplaceService {
         status: 'TERBUKA',
         sponsor: sponsor
           ? {
-              create: sponsor.map((s) => ({
-                nama: s.nama,
-                logo: s.logo,
-              })),
-            }
+            create: sponsor.map((s) => ({
+              nama: s.nama,
+              logo: s.logo,
+            })),
+          }
           : undefined,
         kategoriPenilaian: kategoriPenilaian
           ? {
-              create: kategoriPenilaian.map((k) => ({
-                nama: k.nama,
-                deskripsi: k.deskripsi,
-                penilai: {
-                  connect: k.penilaiIds.map((id) => ({ id })),
-                },
-                kriteria: {
-                  create: k.kriteria.map((kr) => ({
-                    nama: kr.nama,
-                    bobot: parseInt(kr.bobot),
-                  })),
-                },
-              })),
-            }
+            create: kategoriPenilaian.map((k) => ({
+              nama: k.nama,
+              deskripsi: k.deskripsi,
+              penilai: {
+                connect: k.penilaiIds.map((id) => ({ id })),
+              },
+              kriteria: {
+                create: k.kriteria.map((kr) => ({
+                  nama: kr.nama,
+                  bobot: parseInt(kr.bobot),
+                })),
+              },
+            })),
+          }
           : undefined,
       },
       include: {
@@ -314,7 +314,7 @@ export class MarketplaceService {
 
     if (event._count.usaha > 0) {
       const error = new Error(
-        'Event tidak dapat dihapus karena sudah ada peserta terdaftar'
+        'Event tidak dapat dihapus karena sudah ada peserta terdaftar',
       );
       error.statusCode = 400;
       throw error;
@@ -348,7 +348,7 @@ export class MarketplaceService {
 
     if (businessesWithoutBooth.length > 0) {
       const error = new Error(
-        'Semua peserta yang disetujui harus memiliki nomor booth sebelum mengunci event'
+        'Semua peserta yang disetujui harus memiliki nomor booth sebelum mengunci event',
       );
       error.statusCode = 400;
       throw error;

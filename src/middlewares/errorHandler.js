@@ -10,7 +10,7 @@ export class ErrorHandler {
         res,
         'Data sudah ada dalam database',
         400,
-        { field: err.meta?.target }
+        { field: err.meta?.target },
       );
     }
 

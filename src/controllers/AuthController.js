@@ -13,7 +13,7 @@ export class AuthController {
         res,
         result,
         'Registrasi berhasil',
-        201
+        201,
       );
     } catch (error) {
       next(error);
@@ -26,7 +26,7 @@ export class AuthController {
       return ApiResponse.success(
         res,
         result,
-        'Login berhasil'
+        'Login berhasil',
       );
     } catch (error) {
       next(error);
@@ -39,7 +39,7 @@ export class AuthController {
       return ApiResponse.success(
         res,
         { user },
-        'Data user berhasil diambil'
+        'Data user berhasil diambil',
       );
     } catch (error) {
       next(error);
@@ -52,7 +52,7 @@ export class AuthController {
       return ApiResponse.success(
         res,
         null,
-        'Logout berhasil'
+        'Logout berhasil',
       );
     } catch (error) {
       next(error);
@@ -63,12 +63,12 @@ export class AuthController {
     try {
       const result = await this.authService.changePassword(
         req.user.id,
-        req.body
+        req.body,
       );
       return ApiResponse.success(
         res,
         result,
-        'Password berhasil diubah'
+        'Password berhasil diubah',
       );
     } catch (error) {
       next(error);
@@ -79,12 +79,12 @@ export class AuthController {
     try {
       const user = await this.authService.updateProfile(
         req.user.id,
-        req.body
+        req.body,
       );
       return ApiResponse.success(
         res,
         { user },
-        'Profil berhasil diupdate'
+        'Profil berhasil diupdate',
       );
     } catch (error) {
       next(error);
