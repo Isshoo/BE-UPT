@@ -5,6 +5,8 @@ import { AuthMiddleware } from '../middlewares/index.js';
 const router = express.Router();
 const userController = new UserController();
 
+router.get('/guest', userController.getUsersGuest);
+
 router.use(AuthMiddleware.authenticate);
 router.use(AuthMiddleware.authorize('ADMIN'));
 

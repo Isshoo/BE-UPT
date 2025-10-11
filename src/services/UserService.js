@@ -2,6 +2,51 @@ import { prisma } from '../config/index.js';
 import { hashPassword } from '../utils/index.js';
 
 export class UserService {
+  async getUsersGuest(filters = {}) {
+    const { role, page = 1, limit = 100, search } = filters;
+
+    const where = {};
+
+    if (role) {
+      where.role = role;
+    }
+
+    if (search) {
+      where.OR = [
+        { nama: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        select: {
+          id: true,
+          nama: true,
+          role: true,
+          fakultas: true,
+          prodi: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: parseInt(limit),
+      }),
+      prisma.user.count({ where }),
+    ]);
+
+    return {
+      users,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        totalPages: Math.ceil(total / parseInt(limit)),
+      },
+    };
+  }
   async getUsers(filters = {}) {
     const { role, page = 1, limit = 100, search } = filters;
 

@@ -6,6 +6,21 @@ export class UserController {
     this.userService = new UserService();
   }
 
+  getUsersGuest = async (req, res, next) => {
+    try {
+      const result = await this.userService.getUsersGuest(req.query);
+      return ApiResponse.paginate(
+        res,
+        result.users,
+        result.pagination.page,
+        result.pagination.limit,
+        result.pagination.total,
+        'Data user berhasil diambil'
+      );
+    } catch (error) {
+      next(error);
+    }
+  };
   getUsers = async (req, res, next) => {
     try {
       const result = await this.userService.getUsers(req.query);
