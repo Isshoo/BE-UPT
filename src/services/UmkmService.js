@@ -1,6 +1,10 @@
 import { prisma } from '../config/index.js';
+import { NotificationService } from './NotificationService.js';
 
 export class UmkmService {
+  constructor() {
+    this.notificationService = new NotificationService();
+  }
   // ========== UMKM CRUD ==========
 
   async createUmkm(data, userId) {
@@ -324,7 +328,8 @@ export class UmkmService {
       },
     });
 
-    // TODO: Create notification for admin
+    // Notify admin about validation request
+    await this.notificationService.notifyUmkmStageRequest(umkmId);
 
     return updatedStage;
   }
@@ -413,7 +418,15 @@ export class UmkmService {
       });
     }
 
-    // TODO: Create notification for user
+    // Notify user about validation result
+    if (isApproved) {
+      const nextTahap =
+        parseInt(tahap) + 1 <= 4 ? parseInt(tahap) + 1 : parseInt(tahap);
+      await this.notificationService.notifyUmkmStageValidated(
+        umkmId,
+        nextTahap
+      );
+    }
 
     // Fetch updated UMKM
     const updatedUmkm = await this.getUmkmById(umkmId);

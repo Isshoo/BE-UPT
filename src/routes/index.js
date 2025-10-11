@@ -4,6 +4,7 @@ import marketplaceRoutes from './marketplace.routes.js';
 import assessmentRoutes from './assessment.routes.js';
 import userRoutes from './user.routes.js';
 import umkmRoutes from './umkm.routes.js';
+import notificationRoutes from './notification.routes.js';
 
 const router = express.Router();
 
@@ -22,5 +23,6 @@ router.use('/marketplace', marketplaceRoutes);
 router.use('/assessment', assessmentRoutes);
 router.use('/users', userRoutes);
 router.use('/umkm', umkmRoutes);
+router.use('/notifications', notificationRoutes);
 
 export default router;

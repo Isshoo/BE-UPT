@@ -1,6 +1,10 @@
 import { prisma } from '../config/index.js';
+import { NotificationService } from './NotificationService.js';
 
 export class BusinessService {
+  constructor() {
+    this.notificationService = new NotificationService();
+  }
   async registerBusiness(data, eventId, userId) {
     const { tipeUsaha, ...businessData } = data;
 
@@ -108,7 +112,8 @@ export class BusinessService {
       },
     });
 
-    // TODO: Create notification for dosen (if mahasiswa) or admin (if umkm luar)
+    //Create notification for dosen (if mahasiswa) or admin (if umkm luar)
+    await this.notificationService.notifyBusinessRegistered(business.id);
 
     return business;
   }
@@ -185,7 +190,8 @@ export class BusinessService {
       },
     });
 
-    // TODO: Create notification for user
+    // Notify user about approval
+    await this.notificationService.notifyBusinessApproved(updatedBusiness.id);
 
     return updatedBusiness;
   }

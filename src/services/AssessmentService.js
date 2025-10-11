@@ -1,6 +1,10 @@
 import { prisma } from '../config/index.js';
+import { NotificationService } from './NotificationService.js';
 
 export class AssessmentService {
+  constructor() {
+    this.notificationService = new NotificationService();
+  }
   // ========== KATEGORI PENILAIAN ==========
 
   async createKategori(eventId, data) {
@@ -40,6 +44,14 @@ export class AssessmentService {
         kriteria: true,
       },
     });
+
+    // Notify assigned penilai
+    for (const penilaiId of penilaiIds) {
+      await this.notificationService.notifyAssessmentAssigned(
+        kategori.id,
+        penilaiId
+      );
+    }
 
     return kategori;
   }
@@ -171,7 +183,7 @@ export class AssessmentService {
     const isPenilai = kategori.penilai.some((p) => p.id === penilaiId);
     if (!isPenilai) {
       const error = new Error(
-        'Anda tidak memiliki akses untuk menilai kategori ini',
+        'Anda tidak memiliki akses untuk menilai kategori ini'
       );
       error.statusCode = 403;
       throw error;
@@ -180,7 +192,7 @@ export class AssessmentService {
     // Check if event is ongoing
     if (kategori.event.status !== 'BERLANGSUNG') {
       const error = new Error(
-        'Penilaian hanya dapat dilakukan saat event berlangsung',
+        'Penilaian hanya dapat dilakukan saat event berlangsung'
       );
       error.statusCode = 400;
       throw error;
@@ -299,7 +311,7 @@ export class AssessmentService {
           totalScore: Math.round(totalScore * 100) / 100,
           scoreDetails,
         };
-      }),
+      })
     );
 
     // Sort by total score descending
@@ -350,7 +362,13 @@ export class AssessmentService {
       },
     });
 
-    // TODO: Create notification for winner
+    // Notify winner
+    await this.notificationService.createNotification({
+      userId: business.pemilikId,
+      judul: '🎉 Selamat! Anda Menjadi Pemenang!',
+      pesan: `Usaha "${business.namaProduk}" memenangkan kategori "${kategori.nama}" di event "${kategori.event.nama}"`,
+      link: `/marketplace/${kategori.eventId}`,
+    });
 
     return updatedKategori;
   }
@@ -459,7 +477,8 @@ export class AssessmentService {
       },
     });
 
-    // TODO: Create notification for user and admin
+    // Notify user about approval
+    await this.notificationService.notifyBusinessApproved(updatedBusiness.id);
 
     return updatedBusiness;
   }
