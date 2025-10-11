@@ -5,6 +5,7 @@ import assessmentRoutes from './assessment.routes.js';
 import userRoutes from './user.routes.js';
 import umkmRoutes from './umkm.routes.js';
 import notificationRoutes from './notification.routes.js';
+import dashboardRoutes from './dashboard.routes.js';
 
 const router = express.Router();
 
@@ -24,5 +25,6 @@ router.use('/assessment', assessmentRoutes);
 router.use('/users', userRoutes);
 router.use('/umkm', umkmRoutes);
 router.use('/notifications', notificationRoutes);
+router.use('/dashboard', dashboardRoutes);
 
 export default router;
