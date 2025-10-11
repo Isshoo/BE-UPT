@@ -20,7 +20,6 @@ app.use(
 );
 
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 app.use(arcjetMiddleware);
 
@@ -75,17 +74,7 @@ const startServer = () => {
   }
 };
 
-// Deteksi environment: serverless atau traditional server
-const isServerless =
-  process.env.VERCEL ||
-  process.env.AWS_LAMBDA_FUNCTION_NAME ||
-  process.env.NETLIFY ||
-  process.env.FUNCTION_NAME;
-
-// Hanya start server jika BUKAN serverless environment
-if (!isServerless) {
-  startServer();
-}
+startServer();
 
 // Export app untuk serverless platforms (Vercel, Netlify, AWS Lambda, dll)
 export default app;
