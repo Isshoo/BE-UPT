@@ -5,12 +5,13 @@ import { AuthMiddleware } from '../middlewares/index.js';
 const router = express.Router();
 const dashboardController = new DashboardController();
 
+router.get('/stats', dashboardController.getGeneralStats);
+
 // All routes require admin authentication
 router.use(AuthMiddleware.authenticate);
 router.use(AuthMiddleware.authorize('ADMIN'));
 
 // Individual analytics endpoints
-router.get('/stats', dashboardController.getGeneralStats);
 router.get(
   '/marketplace-analytics',
   dashboardController.getMarketplaceAnalytics

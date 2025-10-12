@@ -1,6 +1,7 @@
 import express from 'express';
 import { ExportController } from '../controllers/ExportController.js';
 import { AuthMiddleware } from '../middlewares/index.js';
+import { exportLimiter } from '../middlewares/rateLimiter.js';
 
 const router = express.Router();
 const exportController = new ExportController();
@@ -8,7 +9,7 @@ const exportController = new ExportController();
 // All routes require admin authentication
 router.use(AuthMiddleware.authenticate);
 router.use(AuthMiddleware.authorize('ADMIN'));
-
+router.use(exportLimiter);
 // Export users
 router.get('/users', exportController.exportUsers);
 

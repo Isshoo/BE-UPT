@@ -6,12 +6,9 @@ export class ErrorHandler {
 
     // Prisma errors
     if (err.code === 'P2002') {
-      return ApiResponse.error(
-        res,
-        'Data sudah ada dalam database',
-        400,
-        { field: err.meta?.target },
-      );
+      return ApiResponse.error(res, 'Data sudah ada dalam database', 400, {
+        field: err.meta?.target,
+      });
     }
 
     if (err.code === 'P2025') {
@@ -41,6 +38,27 @@ export class ErrorHandler {
 
   static notFound(req, res) {
     console.log(`❌ 404 - Route not found: ${req.method} ${req.path}`);
-    return ApiResponse.error(res, `Route ${req.method} ${req.path} tidak ditemukan`, 404);
+    return ApiResponse.error(
+      res,
+      `Route ${req.method} ${req.path} tidak ditemukan`,
+      404
+    );
   }
 }
+
+import { logger } from '../utils/logger.js';
+
+export const errorHandler = (err, req, res, next) => {
+  // Log error
+  logger.error('Error occurred', {
+    message: err.message,
+    stack: err.stack,
+    url: req.url,
+    method: req.method,
+  });
+
+  const statusCode = err.statusCode || 500;
+  const message = err.message || 'Internal Server Error';
+
+  return ApiResponse.error(res, message, statusCode);
+};

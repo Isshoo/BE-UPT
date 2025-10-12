@@ -2,7 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import routes from './routes/index.js';
-import { ErrorHandler, arcjetMiddleware } from './middlewares/index.js';
+import { ErrorHandler } from './middlewares/index.js';
+import { apiLimiter } from './middlewares/rateLimiter.js';
 
 // Load environment variables
 dotenv.config();
@@ -21,8 +22,6 @@ app.use(
 
 app.use(express.json());
 
-app.use(arcjetMiddleware);
-
 // Request logging
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
@@ -39,6 +38,7 @@ app.get('/', (req, res) => {
 });
 
 // Routes
+app.use('/api', apiLimiter);
 app.use('/api', routes);
 
 // Error handling

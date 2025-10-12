@@ -2,6 +2,7 @@ import express from 'express';
 import { MarketplaceController } from '../controllers/index.js';
 import { AuthMiddleware } from '../middlewares/index.js';
 import { uploadImage } from '../config/index.js';
+import { ValidationMiddleware } from '../middlewares/index.js';
 
 const router = express.Router();
 const marketplaceController = new MarketplaceController();
@@ -20,76 +21,77 @@ router.post('/:eventId/register', marketplaceController.registerBusiness);
 router.post(
   '/',
   AuthMiddleware.authorize('ADMIN'),
-  marketplaceController.createEvent,
+  ValidationMiddleware.validateEventCreation,
+  marketplaceController.createEvent
 );
 
 router.put(
   '/:id',
   AuthMiddleware.authorize('ADMIN'),
-  marketplaceController.updateEvent,
+  marketplaceController.updateEvent
 );
 
 router.delete(
   '/:id',
   AuthMiddleware.authorize('ADMIN'),
-  marketplaceController.deleteEvent,
+  marketplaceController.deleteEvent
 );
 
 router.post(
   '/:id/lock',
   AuthMiddleware.authorize('ADMIN'),
-  marketplaceController.lockEvent,
+  marketplaceController.lockEvent
 );
 
 router.post(
   '/:id/unlock',
   AuthMiddleware.authorize('ADMIN'),
-  marketplaceController.unlockEvent,
+  marketplaceController.unlockEvent
 );
 
 router.post(
   '/:id/layout',
   AuthMiddleware.authorize('ADMIN'),
   uploadImage.single('layout'),
-  marketplaceController.uploadLayout,
+  marketplaceController.uploadLayout
 );
 
 // Admin only routes - Sponsor management
 router.post(
   '/:eventId/sponsors',
   AuthMiddleware.authorize('ADMIN'),
-  marketplaceController.addSponsor,
+  marketplaceController.addSponsor
 );
 
 router.put(
   '/sponsors/:sponsorId',
   AuthMiddleware.authorize('ADMIN'),
-  marketplaceController.updateSponsor,
+  marketplaceController.updateSponsor
 );
 
 router.delete(
   '/sponsors/:sponsorId',
   AuthMiddleware.authorize('ADMIN'),
-  marketplaceController.deleteSponsor,
+  marketplaceController.deleteSponsor
 );
 
 // Admin only routes - Business management
 router.get(
   '/:eventId/businesses',
   AuthMiddleware.authorize('ADMIN', 'DOSEN'),
-  marketplaceController.getBusinessesByEvent,
+  marketplaceController.getBusinessesByEvent
 );
 
 router.post(
   '/businesses/:businessId/approve',
   AuthMiddleware.authorize('ADMIN'),
-  marketplaceController.approveBusiness,
+  marketplaceController.approveBusiness
 );
 
 router.post(
   '/businesses/:businessId/booth',
   AuthMiddleware.authorize('ADMIN'),
-  marketplaceController.assignBoothNumber,
+  marketplaceController.assignBoothNumber
 );
 
 export default router;
