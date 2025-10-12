@@ -1,0 +1,57 @@
+services:
+  app:
+    build: .
+    container_name: upt-pik-backend
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/upt_db
+      - JWT_SECRET=your_jwt_secret_key_here_change_in_production
+      - JWT_EXPIRES_IN=7d
+      - CLOUDINARY_CLOUD_NAME=dtkczgmyn
+      - CLOUDINARY_API_KEY=681599548233858
+      - CLOUDINARY_API_SECRET=lPTYsm9D_RGxCr_uzMEJSdVUYx4
+      - PORT=5001
+      - NODE_ENV=development
+      - FRONTEND_URL="*"
+    ports:
+      - '5001:5001'
+      - '5555:5555' # Port untuk Prisma Studio
+    depends_on:
+      - db
+    volumes:
+      - .:/app
+
+  db:
+    image: postgres:13-alpine
+    container_name: postgres-db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=upt_db
+    ports:
+      - '5434:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+      - PGADMIN_CONFIG_SERVER_MODE=False
+      - PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED=False
+    ports:
+      - '5050:80'
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      - db
+
+volumes:
+  postgres-data:
+  pgadmin-data:
