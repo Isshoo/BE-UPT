@@ -15,10 +15,10 @@
     "lint:fix": "eslint --fix src/**/*.js",
     "format": "prettier --write \"src/**/*.js\"",
     "docker:build": "docker compose build",
-    "docker:migrate": "docker compose exec app npm run prisma:migrate",
-    "docker:seed": "docker compose exec app npm run prisma:seed",
-    "docker:studio": "docker compose exec app npm run prisma:studio",
+    "docker:migrate": "docker compose run app npm run prisma:migrate",
+    "docker:seed": "docker compose run app npm run prisma:seed",
     "docker:up": "docker compose up -d",
+    "docker:studio": "docker compose exec app npm run prisma:studio",
     "docker:down": "docker compose down"
   },
   "keywords": [

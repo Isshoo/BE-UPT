@@ -301,9 +301,24 @@ async function main() {
 
       if (isMahasiswa) {
         const user = userList[i % userList.length];
-        const dosen = dosenList.find(
-          (d) => d.fakultas === user.fakultas && d.prodi === user.prodi
+
+        // Pilih fakultas secara random
+        const fakultas =
+          FAKULTAS_OPTIONS[Math.floor(Math.random() * FAKULTAS_OPTIONS.length)];
+        const fakultasValue = fakultas.value;
+
+        // Pilih prodi berdasarkan fakultas yang dipilih
+        const prodiList = PRODI_BY_FAKULTAS[fakultasValue];
+        const prodi = prodiList[Math.floor(Math.random() * prodiList.length)];
+
+        // Pilih dosen pembimbing berdasarkan fakultas dan prodi
+        const dosenOptions = dosenList.filter(
+          (d) => d.fakultas === fakultasValue && d.prodi === prodi
         );
+        const dosen =
+          dosenOptions.length > 0
+            ? dosenOptions[Math.floor(Math.random() * dosenOptions.length)]
+            : dosenList.find((d) => d.fakultas === fakultasValue); // Fallback ke dosen fakultas yang sama
 
         usahaData = {
           ...usahaData,
@@ -319,8 +334,8 @@ async function main() {
             },
           ],
           ketuaId: `${Math.floor(Math.random() * 90000000) + 10000000}`,
-          fakultas: user.fakultas,
-          prodi: user.prodi,
+          fakultas: fakultasValue,
+          prodi: prodi,
           pembimbingId: dosen?.id,
           mataKuliah: 'Kewirausahaan',
         };
