@@ -32,11 +32,11 @@ export class BusinessService {
 
     // Check registration period
     const now = new Date();
-    if (now < event.mulaiPendaftaran || now > event.akhirPendaftaran) {
-      const error = new Error('Belum/sudah melewati periode pendaftaran');
-      error.statusCode = 400;
-      throw error;
-    }
+    // if (now < event.mulaiPendaftaran || now > event.akhirPendaftaran) {
+    //   const error = new Error('Belum/sudah melewati periode pendaftaran');
+    //   error.statusCode = 400;
+    //   throw error;
+    // }
 
     // Check quota
     if (event._count.usaha >= event.kuotaPeserta) {
