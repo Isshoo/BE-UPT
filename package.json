@@ -11,6 +11,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "node prisma/seed.js",
     "prisma:seedAdmin": "node prisma/seedAdmin.js",
+    "prisma:seedDosen": "node prisma/seedDosen.js",
     "prisma:clear": "node prisma/clearData.js",
     "prisma:studio": "prisma studio",
     "lint": "eslint src/**/*.js",

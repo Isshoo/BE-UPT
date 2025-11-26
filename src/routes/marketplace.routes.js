@@ -9,6 +9,14 @@ const marketplaceController = new MarketplaceController();
 
 // Public routes - Get events (accessible to all)
 router.get('/', marketplaceController.getEvents);
+
+// User routes - Get my history
+router.get(
+  '/my-history',
+  AuthMiddleware.authenticate,
+  marketplaceController.getUserHistory
+);
+
 router.get('/:id', marketplaceController.getEventById);
 
 // Protected routes - require authentication

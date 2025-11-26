@@ -425,4 +425,34 @@ export class MarketplaceService {
 
     return { message: 'Sponsor berhasil dihapus' };
   }
+
+  async getUserMarketplaceHistory(userId) {
+    console.log('Getting marketplace history for user:', userId);
+    const history = await prisma.riwayatMarketplace.findMany({
+      where: { userId },
+      include: {
+        event: {
+          include: {
+            sponsor: true,
+            _count: {
+              select: { usaha: true },
+            },
+          },
+        },
+        usaha: {
+          select: {
+            id: true,
+            namaProduk: true,
+            kategori: true,
+            tipeUsaha: true,
+            nomorBooth: true,
+            disetujui: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return history;
+  }
 }

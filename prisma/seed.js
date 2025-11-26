@@ -29,14 +29,12 @@ const PRODI_BY_FAKULTAS = {
 };
 
 const KATEGORI_USAHA = [
-  'Makanan & Minuman',
-  'Fashion & Aksesoris',
-  'Kerajinan Tangan',
-  'Teknologi & Digital',
-  'Jasa & Layanan',
-  'Pendidikan',
-  'Kesehatan & Kecantikan',
-  'Pertanian & Peternakan',
+  'Kuliner',
+  'Fashion',
+  'Kerajinan',
+  'Teknologi',
+  'Jasa',
+  'Lainnya',
 ];
 
 async function main() {
@@ -192,7 +190,7 @@ async function main() {
       await prisma.sponsor.create({
         data: {
           nama: sponsors[i],
-          logo: `https://via.placeholder.com/200x100?text=${sponsors[i]}`,
+          logo: 'https://res.cloudinary.com/dtkczgmyn/image/upload/v1764171559/Placeholder-_-Glossary_rnd9uk.svg',
           eventId: event.id,
         },
       });
@@ -477,10 +475,10 @@ async function main() {
 
       if (t < tahapSaatIni) {
         status = 'SELESAI';
-        files = [`https://example.com/tahap${t}_file.pdf`];
+        files = ['https://res.cloudinary.com/dtkczgmyn/image/upload/v1760104560/upt-pik/files/seraqgdzrpitegehkzgx.pdf'];
       } else if (t === tahapSaatIni) {
         status = Math.random() > 0.5 ? 'SEDANG_PROSES' : 'MENUNGGU_VALIDASI';
-        files = [`https://example.com/tahap${t}_file.pdf`];
+        files = ['https://res.cloudinary.com/dtkczgmyn/image/upload/v1760104560/upt-pik/files/seraqgdzrpitegehkzgx.pdf'];
       }
 
       await prisma.tahapUmkm.create({

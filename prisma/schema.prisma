@@ -101,7 +101,7 @@ model KategoriPenilaian {
   nama        String
   deskripsi   String?
   eventId     String
-  pemenangId  String?  @unique
+  pemenangId  String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -160,6 +160,7 @@ model Usaha {
   pembimbing         User?                 @relation("DosenPembimbing", fields: [pembimbingId], references: [id])
   nilai              NilaiPenilaian[]
   kategoriDimenangkan KategoriPenilaian[] @relation("PemenangKategori")
+  riwayatMarketplace RiwayatMarketplace[]
 
   @@map("usaha")
 }
@@ -224,11 +225,12 @@ model RiwayatMarketplace {
   id        String   @id @default(cuid())
   userId    String
   eventId   String
-  usahaId   String
+  usahaId   String   // ← Field sudah ada
   createdAt DateTime @default(now())
 
   user  User             @relation(fields: [userId], references: [id])
   event EventMarketplace @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  usaha Usaha            @relation(fields: [usahaId], references: [id], onDelete: Cascade)
 
   @@unique([userId, eventId])
   @@map("riwayat_marketplace")

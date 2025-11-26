@@ -5,14 +5,14 @@ const prisma = new PrismaClient();
 
 async function main() {
   // Seed admin user
-  const hashedPassword = await bcrypt.hash('admin123', 10);
+  const hashedPassword = await bcrypt.hash('admin', 10);
 
   // Admin
   await prisma.user.create({
     data: {
-      email: 'admin@upt-pik.ac.id',
+      email: 'upt-pik@unikadelasalle.ac.id',
       password: hashedPassword,
-      nama: 'Admin UPT-PIK',
+      nama: 'Admin',
       role: 'ADMIN',
     },
   });
