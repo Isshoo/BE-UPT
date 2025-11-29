@@ -41,8 +41,8 @@ model User {
   role      Role     @default(USER)
   fakultas  String?
   prodi     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt      @db.Timestamptz
 
   // Relations
   usaha                Usaha[]
@@ -65,15 +65,15 @@ model EventMarketplace {
   semester           String
   tahunAjaran        String
   lokasi             String
-  tanggalPelaksanaan DateTime
-  mulaiPendaftaran   DateTime
-  akhirPendaftaran   DateTime
+  tanggalPelaksanaan DateTime     @db.Timestamptz
+  mulaiPendaftaran   DateTime     @db.Timestamptz
+  akhirPendaftaran   DateTime     @db.Timestamptz
   kuotaPeserta       Int
   status             StatusEvent  @default(DRAFT)
   gambarLayout       String?
   terkunci           Boolean      @default(false)
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
+  createdAt          DateTime     @default(now()) @db.Timestamptz
+  updatedAt          DateTime     @updatedAt      @db.Timestamptz
 
   // Relations
   sponsor              Sponsor[]
@@ -89,7 +89,7 @@ model Sponsor {
   nama      String
   logo      String
   eventId   String
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) @db.Timestamptz
 
   event EventMarketplace @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
@@ -102,8 +102,8 @@ model KategoriPenilaian {
   deskripsi   String?
   eventId     String
   pemenangId  String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now()) @db.Timestamptz
+  updatedAt   DateTime @updatedAt      @db.Timestamptz
 
   event       EventMarketplace    @relation(fields: [eventId], references: [id], onDelete: Cascade)
   penilai     User[]              @relation("DosenPenilai")
@@ -119,7 +119,7 @@ model KriteriaPenilaian {
   nama       String
   bobot      Int // Persentase (0-100)
   kategoriId String
-  createdAt  DateTime @default(now())
+  createdAt  DateTime @default(now()) @db.Timestamptz
 
   kategori KategoriPenilaian @relation(fields: [kategoriId], references: [id], onDelete: Cascade)
   nilai    NilaiPenilaian[]
@@ -151,9 +151,9 @@ model Usaha {
   telepon        String
   nomorBooth     String?
   disetujui      Boolean      @default(false)
-  tanggalDisetujui DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  tanggalDisetujui DateTime?  @db.Timestamptz
+  createdAt      DateTime     @default(now()) @db.Timestamptz
+  updatedAt      DateTime     @updatedAt      @db.Timestamptz
 
   pemilik            User                  @relation(fields: [pemilikId], references: [id])
   event              EventMarketplace      @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -172,8 +172,8 @@ model NilaiPenilaian {
   kategoriId String
   kriteriaId String
   penilaiId  String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt  DateTime @default(now()) @db.Timestamptz
+  updatedAt  DateTime @updatedAt      @db.Timestamptz
 
   usaha    Usaha              @relation(fields: [usahaId], references: [id], onDelete: Cascade)
   kategori KategoriPenilaian  @relation(fields: [kategoriId], references: [id], onDelete: Cascade)
@@ -194,8 +194,8 @@ model Umkm {
   telepon      String
   userId       String
   tahapSaatIni Int      @default(1) // 1-4
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now()) @db.Timestamptz
+  updatedAt    DateTime @updatedAt      @db.Timestamptz
 
   user   User        @relation(fields: [userId], references: [id])
   tahap  TahapUmkm[]
@@ -210,10 +210,10 @@ model TahapUmkm {
   status          StatusTahapUmkm  @default(BELUM_DIMULAI)
   file            Json? // Array of file URLs
   catatan         String?          @db.Text
-  tanggalSubmit   DateTime?
-  tanggalValidasi DateTime?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  tanggalSubmit   DateTime?        @db.Timestamptz
+  tanggalValidasi DateTime?        @db.Timestamptz
+  createdAt       DateTime         @default(now()) @db.Timestamptz
+  updatedAt       DateTime         @updatedAt      @db.Timestamptz
 
   umkm Umkm @relation(fields: [umkmId], references: [id], onDelete: Cascade)
 
@@ -226,7 +226,7 @@ model RiwayatMarketplace {
   userId    String
   eventId   String
   usahaId   String   // ← Field sudah ada
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) @db.Timestamptz
 
   user  User             @relation(fields: [userId], references: [id])
   event EventMarketplace @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -243,7 +243,7 @@ model Notifikasi {
   pesan     String   @db.Text
   link      String?
   sudahBaca Boolean  @default(false)
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) @db.Timestamptz
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
