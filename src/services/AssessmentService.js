@@ -8,140 +8,219 @@ export class AssessmentService {
   // ========== KATEGORI PENILAIAN ==========
 
   async createKategori(eventId, data) {
-    const { nama, deskripsi, penilaiIds, kriteria } = data;
+    try {
+      // Validasi: Cek apakah event ada
+      const event = await prisma.eventMarketplace.findUnique({
+        where: { id: eventId },
+      });
 
-    // Validate total bobot = 100%
-    const totalBobot = kriteria.reduce((sum, k) => sum + parseInt(k.bobot), 0);
-    if (totalBobot !== 100) {
-      const error = new Error('Total bobot kriteria harus 100%');
-      error.statusCode = 400;
-      throw error;
-    }
+      if (!event) {
+        const error = new Error('Event tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
 
-    const kategori = await prisma.kategoriPenilaian.create({
-      data: {
-        nama,
-        deskripsi,
-        eventId,
-        penilai: {
-          connect: penilaiIds.map((id) => ({ id })),
-        },
-        kriteria: {
-          create: kriteria.map((k) => ({
-            nama: k.nama,
-            bobot: parseInt(k.bobot),
-          })),
-        },
-      },
-      include: {
-        penilai: {
-          select: {
-            id: true,
-            nama: true,
-            email: true,
+      const { nama, deskripsi, penilaiIds, kriteria } = data;
+
+      // Validasi: Total bobot harus 100%
+      const totalBobot = kriteria.reduce((sum, k) => sum + parseInt(k.bobot), 0);
+      if (totalBobot !== 100) {
+        const error = new Error('Total bobot kriteria harus 100%');
+        error.statusCode = 400;
+        throw error;
+      }
+
+      // Create kategori
+      const kategori = await prisma.kategoriPenilaian.create({
+        data: {
+          nama: nama.trim(),
+          deskripsi: deskripsi?.trim() || null,
+          eventId,
+          penilai: {
+            connect: penilaiIds.map((id) => ({ id })),
+          },
+          kriteria: {
+            create: kriteria.map((k) => ({
+              nama: k.nama.trim(),
+              bobot: parseInt(k.bobot),
+            })),
           },
         },
-        kriteria: true,
-      },
-    });
+        include: {
+          penilai: {
+            select: {
+              id: true,
+              nama: true,
+              email: true,
+            },
+          },
+          kriteria: true,
+        },
+      });
 
-    // Notify assigned penilai
-    for (const penilaiId of penilaiIds) {
-      await this.notificationService.notifyAssessmentAssigned(
-        kategori.id,
-        penilaiId
-      );
+      // Notify assigned penilai
+      for (const penilaiId of penilaiIds) {
+        await this.notificationService.notifyAssessmentAssigned(
+          kategori.id,
+          penilaiId
+        );
+      }
+
+      return kategori;
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
     }
-
-    return kategori;
   }
 
   async getKategoriByEvent(eventId) {
-    const kategori = await prisma.kategoriPenilaian.findMany({
-      where: { eventId },
-      include: {
-        penilai: {
-          select: {
-            id: true,
-            nama: true,
-            email: true,
-          },
-        },
-        kriteria: true,
-        pemenang: {
-          select: {
-            id: true,
-            namaProduk: true,
-            tipeUsaha: true,
-          },
-        },
-      },
-    });
+    try {
+      // Validasi: Cek apakah event ada
+      const event = await prisma.eventMarketplace.findUnique({
+        where: { id: eventId },
+      });
 
-    return kategori;
+      if (!event) {
+        const error = new Error('Event tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const kategori = await prisma.kategoriPenilaian.findMany({
+        where: { eventId },
+        include: {
+          penilai: {
+            select: {
+              id: true,
+              nama: true,
+              email: true,
+            },
+          },
+          kriteria: true,
+          pemenang: {
+            select: {
+              id: true,
+              namaProduk: true,
+              tipeUsaha: true,
+            },
+          },
+        },
+      });
+
+      return kategori;
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
+    }
   }
 
   async getKategoriById(kategoriId) {
-    const kategori = await prisma.kategoriPenilaian.findUnique({
-      where: { id: kategoriId },
-      include: {
-        event: true,
-        penilai: {
-          select: {
-            id: true,
-            nama: true,
-            email: true,
+    try {
+      // Validasi: Cek apakah kategori ada
+      const kategori = await prisma.kategoriPenilaian.findUnique({
+        where: { id: kategoriId },
+        include: {
+          event: true,
+          penilai: {
+            select: {
+              id: true,
+              nama: true,
+              email: true,
+            },
           },
+          kriteria: true,
+          pemenang: true,
         },
-        kriteria: true,
-        pemenang: true,
-      },
-    });
+      });
 
-    if (!kategori) {
-      const error = new Error('Kategori penilaian tidak ditemukan');
-      error.statusCode = 404;
-      throw error;
+      if (!kategori) {
+        const error = new Error('Kategori penilaian tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      return kategori;
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
     }
-
-    return kategori;
   }
 
   async updateKategori(kategoriId, data) {
-    const { nama, deskripsi, penilaiIds } = data;
+    try {
+      // Validasi: Cek apakah kategori ada
+      const existingKategori = await prisma.kategoriPenilaian.findUnique({
+        where: { id: kategoriId },
+      });
 
-    const kategori = await prisma.kategoriPenilaian.update({
-      where: { id: kategoriId },
-      data: {
-        nama,
-        deskripsi,
-        ...(penilaiIds && {
+      if (!existingKategori) {
+        const error = new Error('Kategori penilaian tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const { nama, deskripsi, penilaiIds } = data;
+
+      // Prepare update data (hanya field yang diisi)
+      const updateData = {};
+      if (nama !== undefined) updateData.nama = nama.trim();
+      if (deskripsi !== undefined) updateData.deskripsi = deskripsi?.trim() || null;
+      if (penilaiIds && penilaiIds.length > 0) {
+        updateData.penilai = {
+          set: penilaiIds.map((id) => ({ id })),
+        };
+      }
+
+      const kategori = await prisma.kategoriPenilaian.update({
+        where: { id: kategoriId },
+        data: updateData,
+        include: {
           penilai: {
-            set: penilaiIds.map((id) => ({ id })),
+            select: {
+              id: true,
+              nama: true,
+              email: true,
+            },
           },
-        }),
-      },
-      include: {
-        penilai: {
-          select: {
-            id: true,
-            nama: true,
-            email: true,
-          },
+          kriteria: true,
         },
-        kriteria: true,
-      },
-    });
+      });
 
-    return kategori;
+      return kategori;
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
+    }
   }
 
   async deleteKategori(kategoriId) {
-    await prisma.kategoriPenilaian.delete({
-      where: { id: kategoriId },
-    });
+    try {
+      // Validasi: Cek apakah kategori ada
+      const kategori = await prisma.kategoriPenilaian.findUnique({
+        where: { id: kategoriId },
+      });
 
-    return { message: 'Kategori penilaian berhasil dihapus' };
+      if (!kategori) {
+        const error = new Error('Kategori penilaian tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      // Delete kategori
+      await prisma.kategoriPenilaian.delete({
+        where: { id: kategoriId },
+      });
+
+      return { message: 'Kategori penilaian berhasil dihapus' };
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
+    }
   }
 
   // ========== KRITERIA PENILAIAN ==========
@@ -163,323 +242,401 @@ export class AssessmentService {
   // ========== PENILAIAN/SCORING ==========
 
   async submitScore(data, penilaiId) {
-    const { usahaId, kategoriId, kriteriaId, nilai } = data;
+    try {
+      const { usahaId, kategoriId, kriteriaId, nilai } = data;
 
-    // Validate penilai is assigned to this category
-    const kategori = await prisma.kategoriPenilaian.findUnique({
-      where: { id: kategoriId },
-      include: {
-        penilai: true,
-        event: true,
-      },
-    });
+      // Validasi: Cek apakah kategori ada
+      const kategori = await prisma.kategoriPenilaian.findUnique({
+        where: { id: kategoriId },
+        include: {
+          penilai: true,
+          event: true,
+        },
+      });
 
-    if (!kategori) {
-      const error = new Error('Kategori penilaian tidak ditemukan');
-      error.statusCode = 404;
-      throw error;
-    }
+      if (!kategori) {
+        const error = new Error('Kategori penilaian tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
 
-    const isPenilai = kategori.penilai.some((p) => p.id === penilaiId);
-    if (!isPenilai) {
-      const error = new Error(
-        'Anda tidak memiliki akses untuk menilai kategori ini'
-      );
-      error.statusCode = 403;
-      throw error;
-    }
+      // Validasi: Cek apakah penilai memiliki akses
+      const isPenilai = kategori.penilai.some((p) => p.id === penilaiId);
+      if (!isPenilai) {
+        const error = new Error(
+          'Anda tidak memiliki akses untuk menilai kategori ini'
+        );
+        error.statusCode = 403;
+        throw error;
+      }
 
-    // Check if event is ongoing
-    if (kategori.event.status !== 'BERLANGSUNG') {
-      const error = new Error(
-        'Penilaian hanya dapat dilakukan saat event berlangsung'
-      );
-      error.statusCode = 400;
-      throw error;
-    }
+      // Validasi: Cek apakah event sedang berlangsung
+      if (kategori.event.status !== 'BERLANGSUNG') {
+        const error = new Error(
+          'Penilaian hanya dapat dilakukan saat event berlangsung'
+        );
+        error.statusCode = 400;
+        throw error;
+      }
 
-    // Validate business is in this event
-    const business = await prisma.usaha.findUnique({
-      where: { id: usahaId },
-    });
+      // Validasi: Cek apakah business ada dalam event ini
+      const business = await prisma.usaha.findUnique({
+        where: { id: usahaId },
+      });
 
-    if (!business || business.eventId !== kategori.eventId) {
-      const error = new Error('Usaha tidak ditemukan dalam event ini');
-      error.statusCode = 404;
-      throw error;
-    }
+      if (!business || business.eventId !== kategori.eventId) {
+        const error = new Error('Usaha tidak ditemukan dalam event ini');
+        error.statusCode = 404;
+        throw error;
+      }
 
-    // Validate score range (0-100)
-    if (nilai < 0 || nilai > 100) {
-      const error = new Error('Nilai harus antara 0-100');
-      error.statusCode = 400;
-      throw error;
-    }
+      // Validasi: Cek range nilai (0-100)
+      if (nilai < 0 || nilai > 100) {
+        const error = new Error('Nilai harus antara 0-100');
+        error.statusCode = 400;
+        throw error;
+      }
 
-    // Upsert score
-    const score = await prisma.nilaiPenilaian.upsert({
-      where: {
-        usahaId_kategoriId_kriteriaId: {
+      // Upsert score
+      const score = await prisma.nilaiPenilaian.upsert({
+        where: {
+          usahaId_kategoriId_kriteriaId: {
+            usahaId,
+            kategoriId,
+            kriteriaId,
+          },
+        },
+        update: {
+          nilai: parseInt(nilai),
+        },
+        create: {
+          nilai: parseInt(nilai),
           usahaId,
           kategoriId,
           kriteriaId,
+          penilaiId,
         },
-      },
-      update: {
-        nilai: parseInt(nilai),
-      },
-      create: {
-        nilai: parseInt(nilai),
-        usahaId,
-        kategoriId,
-        kriteriaId,
-        penilaiId,
-      },
-    });
+      });
 
-    return score;
+      return score;
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
+    }
   }
 
   async getScoresByKategori(kategoriId) {
-    const kategori = await prisma.kategoriPenilaian.findUnique({
-      where: { id: kategoriId },
-      include: {
-        kriteria: true,
-        event: {
-          include: {
-            usaha: {
-              where: {
-                disetujui: true,
-                tipeUsaha: 'MAHASISWA', // Only mahasiswa can be assessed
-              },
-              include: {
-                pemilik: {
-                  select: {
-                    nama: true,
+    try {
+      // Validasi: Cek apakah kategori ada
+      const kategori = await prisma.kategoriPenilaian.findUnique({
+        where: { id: kategoriId },
+        include: {
+          kriteria: true,
+          event: {
+            include: {
+              usaha: {
+                where: {
+                  disetujui: true,
+                  tipeUsaha: 'MAHASISWA', // Only mahasiswa can be assessed
+                },
+                include: {
+                  pemilik: {
+                    select: {
+                      nama: true,
+                    },
                   },
                 },
               },
             },
           },
         },
-      },
-    });
+      });
 
-    if (!kategori) {
-      const error = new Error('Kategori penilaian tidak ditemukan');
-      error.statusCode = 404;
-      throw error;
-    }
+      if (!kategori) {
+        const error = new Error('Kategori penilaian tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
 
-    // Get scores for each business
-    const businessesWithScores = await Promise.all(
-      kategori.event.usaha.map(async (usaha) => {
-        const scores = await prisma.nilaiPenilaian.findMany({
-          where: {
-            usahaId: usaha.id,
-            kategoriId,
-          },
-          include: {
-            kriteria: true,
-          },
-        });
+      // Get scores for each business
+      const businessesWithScores = await Promise.all(
+        kategori.event.usaha.map(async (usaha) => {
+          const scores = await prisma.nilaiPenilaian.findMany({
+            where: {
+              usahaId: usaha.id,
+              kategoriId,
+            },
+            include: {
+              kriteria: true,
+            },
+          });
 
-        // Calculate total score (weighted average)
-        let totalScore = 0;
-        const scoreDetails = kategori.kriteria.map((kriteria) => {
-          const score = scores.find((s) => s.kriteriaId === kriteria.id);
-          const weightedScore = score
-            ? (score.nilai * kriteria.bobot) / 100
-            : 0;
-          totalScore += weightedScore;
+          // Calculate total score (weighted average)
+          let totalScore = 0;
+          const scoreDetails = kategori.kriteria.map((kriteria) => {
+            const score = scores.find((s) => s.kriteriaId === kriteria.id);
+            const weightedScore = score
+              ? (score.nilai * kriteria.bobot) / 100
+              : 0;
+            totalScore += weightedScore;
+
+            return {
+              kriteriaId: kriteria.id,
+              namaKriteria: kriteria.nama,
+              bobot: kriteria.bobot,
+              nilai: score?.nilai || 0,
+              weightedScore,
+            };
+          });
 
           return {
-            kriteriaId: kriteria.id,
-            namaKriteria: kriteria.nama,
-            bobot: kriteria.bobot,
-            nilai: score?.nilai || 0,
-            weightedScore,
+            usahaId: usaha.id,
+            namaProduk: usaha.namaProduk,
+            kategoriUsaha: usaha.kategori,
+            pemilik: usaha.pemilik.nama,
+            nomorBooth: usaha.nomorBooth,
+            totalScore: Math.round(totalScore * 100) / 100,
+            scoreDetails,
           };
-        });
+        })
+      );
 
-        return {
-          usahaId: usaha.id,
-          namaProduk: usaha.namaProduk,
-          kategoriUsaha: usaha.kategori,
-          pemilik: usaha.pemilik.nama,
-          nomorBooth: usaha.nomorBooth,
-          totalScore: Math.round(totalScore * 100) / 100,
-          scoreDetails,
-        };
-      })
-    );
+      // Sort by total score descending
+      businessesWithScores.sort((a, b) => b.totalScore - a.totalScore);
 
-    // Sort by total score descending
-    businessesWithScores.sort((a, b) => b.totalScore - a.totalScore);
-
-    return {
-      kategori: {
-        id: kategori.id,
-        nama: kategori.nama,
-        deskripsi: kategori.deskripsi,
-      },
-      kriteria: kategori.kriteria,
-      businesses: businessesWithScores,
-    };
+      return {
+        kategori: {
+          id: kategori.id,
+          nama: kategori.nama,
+          deskripsi: kategori.deskripsi,
+        },
+        kriteria: kategori.kriteria,
+        businesses: businessesWithScores,
+      };
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
+    }
   }
 
   async setWinner(kategoriId, usahaId) {
-    // Verify business exists and is in the event
-    const kategori = await prisma.kategoriPenilaian.findUnique({
-      where: { id: kategoriId },
-      include: { event: true },
-    });
+    try {
+      // Validasi: Cek apakah kategori ada
+      const kategori = await prisma.kategoriPenilaian.findUnique({
+        where: { id: kategoriId },
+        include: { event: true },
+      });
 
-    if (!kategori) {
-      const error = new Error('Kategori penilaian tidak ditemukan');
-      error.statusCode = 404;
-      throw error;
+      if (!kategori) {
+        const error = new Error('Kategori penilaian tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      // Validasi: Cek apakah business ada dalam event ini
+      const business = await prisma.usaha.findUnique({
+        where: { id: usahaId },
+      });
+
+      if (!business || business.eventId !== kategori.eventId) {
+        const error = new Error('Usaha tidak ditemukan dalam event ini');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      // Update winner
+      const updatedKategori = await prisma.kategoriPenilaian.update({
+        where: { id: kategoriId },
+        data: {
+          pemenangId: usahaId,
+        },
+        include: {
+          pemenang: true,
+        },
+      });
+
+      // Notify winner
+      await this.notificationService.createNotification({
+        userId: business.pemilikId,
+        judul: '🎉 Selamat! Anda Menjadi Pemenang!',
+        pesan: `Usaha "${business.namaProduk}" memenangkan kategori "${kategori.nama}" di event "${kategori.event.nama}"`,
+        link: `/marketplace/${kategori.eventId}`,
+      });
+
+      return updatedKategori;
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
     }
-
-    const business = await prisma.usaha.findUnique({
-      where: { id: usahaId },
-    });
-
-    if (!business || business.eventId !== kategori.eventId) {
-      const error = new Error('Usaha tidak ditemukan dalam event ini');
-      error.statusCode = 404;
-      throw error;
-    }
-
-    // Update winner
-    const updatedKategori = await prisma.kategoriPenilaian.update({
-      where: { id: kategoriId },
-      data: {
-        pemenangId: usahaId,
-      },
-      include: {
-        pemenang: true,
-      },
-    });
-
-    // Notify winner
-    await this.notificationService.createNotification({
-      userId: business.pemilikId,
-      judul: '🎉 Selamat! Anda Menjadi Pemenang!',
-      pesan: `Usaha "${business.namaProduk}" memenangkan kategori "${kategori.nama}" di event "${kategori.event.nama}"`,
-      link: `/marketplace/${kategori.eventId}`,
-    });
-
-    return updatedKategori;
   }
 
   // ========== DOSEN SPECIFIC ==========
 
   async getKategoriByDosen(dosenId) {
-    const kategori = await prisma.kategoriPenilaian.findMany({
-      where: {
-        penilai: {
-          some: {
-            id: dosenId,
-          },
-        },
-      },
-      include: {
-        event: {
-          select: {
-            id: true,
-            nama: true,
-            status: true,
-            tanggalPelaksanaan: true,
-          },
-        },
-        kriteria: true,
-      },
-      orderBy: {
-        event: {
-          tanggalPelaksanaan: 'desc',
-        },
-      },
-    });
+    try {
+      // Validasi: Cek apakah dosen ada
+      const dosen = await prisma.user.findUnique({
+        where: { id: dosenId },
+      });
 
-    return kategori;
+      if (!dosen) {
+        const error = new Error('Dosen tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const kategori = await prisma.kategoriPenilaian.findMany({
+        where: {
+          penilai: {
+            some: {
+              id: dosenId,
+            },
+          },
+        },
+        include: {
+          event: {
+            select: {
+              id: true,
+              nama: true,
+              status: true,
+              tanggalPelaksanaan: true,
+            },
+          },
+          kriteria: true,
+        },
+        orderBy: {
+          event: {
+            tanggalPelaksanaan: 'desc',
+          },
+        },
+      });
+
+      return kategori;
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
+    }
   }
 
   async getMentoredBusinesses(dosenId, eventId = null) {
-    const where = {
-      pembimbingId: dosenId,
-    };
+    try {
+      // Validasi: Cek apakah dosen ada
+      const dosen = await prisma.user.findUnique({
+        where: { id: dosenId },
+      });
 
-    if (eventId) {
-      where.eventId = eventId;
+      if (!dosen) {
+        const error = new Error('Dosen tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      // Validasi: Cek apakah event ada (jika eventId diberikan)
+      if (eventId) {
+        const event = await prisma.eventMarketplace.findUnique({
+          where: { id: eventId },
+        });
+
+        if (!event) {
+          const error = new Error('Event tidak ditemukan');
+          error.statusCode = 404;
+          throw error;
+        }
+      }
+
+      const where = {
+        pembimbingId: dosenId,
+      };
+
+      if (eventId) {
+        where.eventId = eventId;
+      }
+
+      const businesses = await prisma.usaha.findMany({
+        where,
+        include: {
+          event: {
+            select: {
+              id: true,
+              nama: true,
+              status: true,
+              tanggalPelaksanaan: true,
+            },
+          },
+          pemilik: {
+            select: {
+              id: true,
+              nama: true,
+              email: true,
+            },
+          },
+        },
+        orderBy: {
+          event: {
+            tanggalPelaksanaan: 'desc',
+          },
+        },
+      });
+
+      return businesses;
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
     }
-
-    const businesses = await prisma.usaha.findMany({
-      where,
-      include: {
-        event: {
-          select: {
-            id: true,
-            nama: true,
-            status: true,
-            tanggalPelaksanaan: true,
-          },
-        },
-        pemilik: {
-          select: {
-            id: true,
-            nama: true,
-            email: true,
-          },
-        },
-      },
-      orderBy: {
-        event: {
-          tanggalPelaksanaan: 'desc',
-        },
-      },
-    });
-
-    return businesses;
   }
 
   async approveMentoredBusiness(businessId, dosenId) {
-    const business = await prisma.usaha.findUnique({
-      where: { id: businessId },
-    });
+    try {
+      // Validasi: Cek apakah business ada
+      const business = await prisma.usaha.findUnique({
+        where: { id: businessId },
+      });
 
-    if (!business) {
-      const error = new Error('Usaha tidak ditemukan');
-      error.statusCode = 404;
-      throw error;
+      if (!business) {
+        const error = new Error('Usaha tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      // Validasi: Cek apakah dosen adalah pembimbing
+      if (business.pembimbingId !== dosenId) {
+        const error = new Error('Anda bukan pembimbing usaha ini');
+        error.statusCode = 403;
+        throw error;
+      }
+
+      // Validasi: Cek apakah sudah disetujui
+      if (business.disetujui) {
+        const error = new Error('Usaha sudah disetujui sebelumnya');
+        error.statusCode = 400;
+        throw error;
+      }
+
+      // Update business
+      const updatedBusiness = await prisma.usaha.update({
+        where: { id: businessId },
+        data: {
+          disetujui: true,
+          tanggalDisetujui: new Date(),
+        },
+        include: {
+          pemilik: true,
+        },
+      });
+
+      // Notify user about approval
+      await this.notificationService.notifyBusinessApproved(updatedBusiness.id);
+
+      return updatedBusiness;
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
     }
-
-    if (business.pembimbingId !== dosenId) {
-      const error = new Error('Anda bukan pembimbing usaha ini');
-      error.statusCode = 403;
-      throw error;
-    }
-
-    if (business.disetujui) {
-      const error = new Error('Usaha sudah disetujui sebelumnya');
-      error.statusCode = 400;
-      throw error;
-    }
-
-    const updatedBusiness = await prisma.usaha.update({
-      where: { id: businessId },
-      data: {
-        disetujui: true,
-        tanggalDisetujui: new Date(),
-      },
-      include: {
-        pemilik: true,
-      },
-    });
-
-    // Notify user about approval
-    await this.notificationService.notifyBusinessApproved(updatedBusiness.id);
-
-    return updatedBusiness;
   }
 }

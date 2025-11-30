@@ -6,234 +6,267 @@ export class BusinessService {
     this.notificationService = new NotificationService();
   }
   async registerBusiness(data, eventId, userId) {
-    const { tipeUsaha, ...businessData } = data;
+    try {
+      const { tipeUsaha, ...businessData } = data;
 
-    // Check if event exists and open
-    const event = await prisma.eventMarketplace.findUnique({
-      where: { id: eventId },
-      include: {
-        _count: {
-          select: { usaha: true },
-        },
-      },
-    });
-
-    if (!event) {
-      const error = new Error('Event tidak ditemukan');
-      error.statusCode = 404;
-      throw error;
-    }
-
-    if (event.status !== 'TERBUKA') {
-      const error = new Error('Pendaftaran sudah ditutup');
-      error.statusCode = 400;
-      throw error;
-    }
-
-    // Check registration period
-    const now = new Date();
-    // if (now < event.mulaiPendaftaran || now > event.akhirPendaftaran) {
-    //   const error = new Error('Belum/sudah melewati periode pendaftaran');
-    //   error.statusCode = 400;
-    //   throw error;
-    // }
-
-    // Check quota
-    if (event._count.usaha >= event.kuotaPeserta) {
-      const error = new Error('Kuota peserta sudah penuh');
-      error.statusCode = 400;
-      throw error;
-    }
-
-    // Check if user already registered
-    const existingBusiness = await prisma.usaha.findFirst({
-      where: {
-        eventId,
-        pemilikId: userId,
-      },
-    });
-
-    if (existingBusiness) {
-      const error = new Error('Anda sudah terdaftar di event ini');
-      error.statusCode = 400;
-      throw error;
-    }
-
-    // Create business
-    const business = await prisma.usaha.create({
-      data: {
-        namaProduk: businessData.namaProduk,
-        kategori: businessData.kategori,
-        deskripsi: businessData.deskripsi,
-        tipeUsaha,
-        telepon: businessData.telepon,
-        eventId,
-        pemilikId: userId,
-        // Mahasiswa specific
-        ...(tipeUsaha === 'MAHASISWA' && {
-          anggota: businessData.anggota,
-          ketuaId: businessData.ketuaId,
-          fakultas: businessData.fakultas,
-          prodi: businessData.prodi,
-          pembimbingId: businessData.pembimbingId,
-          mataKuliah: businessData.mataKuliah,
-        }),
-        // UMKM Luar specific
-        ...(tipeUsaha === 'UMKM_LUAR' && {
-          namaPemilik: businessData.namaPemilik,
-          alamat: businessData.alamat,
-          disetujui: false, // Admin approval needed
-        }),
-      },
-      include: {
-        pemilik: {
-          select: {
-            id: true,
-            nama: true,
-            email: true,
+      // Validasi: Cek apakah event ada dan terbuka
+      const event = await prisma.eventMarketplace.findUnique({
+        where: { id: eventId },
+        include: {
+          _count: {
+            select: { usaha: true },
           },
         },
-        pembimbing: {
-          select: {
-            id: true,
-            nama: true,
-            email: true,
+      });
+
+      if (!event) {
+        const error = new Error('Event tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      if (event.status !== 'TERBUKA') {
+        const error = new Error('Pendaftaran sudah ditutup');
+        error.statusCode = 400;
+        throw error;
+      }
+
+      // Validasi: Cek kuota
+      if (event._count.usaha >= event.kuotaPeserta) {
+        const error = new Error('Kuota peserta sudah penuh');
+        error.statusCode = 400;
+        throw error;
+      }
+
+      // Validasi: Cek apakah user sudah terdaftar
+      const existingBusiness = await prisma.usaha.findFirst({
+        where: {
+          eventId,
+          pemilikId: userId,
+        },
+      });
+
+      if (existingBusiness) {
+        const error = new Error('Anda sudah terdaftar di event ini');
+        error.statusCode = 409;
+        throw error;
+      }
+
+      // Create business
+      const business = await prisma.usaha.create({
+        data: {
+          namaProduk: businessData.namaProduk.trim(),
+          kategori: businessData.kategori.trim(),
+          deskripsi: businessData.deskripsi.trim(),
+          tipeUsaha,
+          telepon: businessData.telepon.trim(),
+          eventId,
+          pemilikId: userId,
+          // Mahasiswa specific
+          ...(tipeUsaha === 'MAHASISWA' && {
+            anggota: businessData.anggota,
+            ketuaId: businessData.ketuaId,
+            fakultas: businessData.fakultas?.trim() || null,
+            prodi: businessData.prodi?.trim() || null,
+            pembimbingId: businessData.pembimbingId || null,
+            mataKuliah: businessData.mataKuliah?.trim() || null,
+          }),
+          // UMKM Luar specific
+          ...(tipeUsaha === 'UMKM_LUAR' && {
+            namaPemilik: businessData.namaPemilik?.trim() || null,
+            alamat: businessData.alamat?.trim() || null,
+            disetujui: false, // Admin approval needed
+          }),
+        },
+        include: {
+          pemilik: {
+            select: {
+              id: true,
+              nama: true,
+              email: true,
+            },
+          },
+          pembimbing: {
+            select: {
+              id: true,
+              nama: true,
+              email: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    // Create marketplace history
-    await prisma.riwayatMarketplace.create({
-      data: {
-        userId,
-        eventId,
-        usahaId: business.id,
-      },
-    });
+      // Create marketplace history
+      await prisma.riwayatMarketplace.create({
+        data: {
+          userId,
+          eventId,
+          usahaId: business.id,
+        },
+      });
 
-    //Create notification for dosen (if mahasiswa) or admin (if umkm luar)
-    await this.notificationService.notifyBusinessRegistered(business.id);
+      // Create notification for dosen (if mahasiswa) or admin (if umkm luar)
+      await this.notificationService.notifyBusinessRegistered(business.id);
 
-    return business;
+      return business;
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
+    }
   }
 
   async getBusinessesByEvent(eventId, filters = {}) {
-    const { tipeUsaha, disetujui, search } = filters;
+    try {
+      // Validasi: Cek apakah event ada
+      const event = await prisma.eventMarketplace.findUnique({
+        where: { id: eventId },
+      });
 
-    const where = { eventId };
+      if (!event) {
+        const error = new Error('Event tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
 
-    if (tipeUsaha) {
-      where.tipeUsaha = tipeUsaha;
-    }
+      const { tipeUsaha, disetujui, search } = filters;
 
-    if (disetujui !== undefined) {
-      where.disetujui = disetujui === 'true';
-    }
+      const where = { eventId };
 
-    if (search) {
-      where.OR = [
-        { namaProduk: { contains: search, mode: 'insensitive' } },
-        { kategori: { contains: search, mode: 'insensitive' } },
-      ];
-    }
+      if (tipeUsaha) {
+        where.tipeUsaha = tipeUsaha;
+      }
 
-    const businesses = await prisma.usaha.findMany({
-      where,
-      include: {
-        pemilik: {
-          select: {
-            id: true,
-            nama: true,
-            email: true,
+      if (disetujui !== undefined) {
+        where.disetujui = disetujui === true || disetujui === 'true';
+      }
+
+      if (search) {
+        where.OR = [
+          { namaProduk: { contains: search, mode: 'insensitive' } },
+          { kategori: { contains: search, mode: 'insensitive' } },
+        ];
+      }
+
+      const businesses = await prisma.usaha.findMany({
+        where,
+        include: {
+          pemilik: {
+            select: {
+              id: true,
+              nama: true,
+              email: true,
+            },
+          },
+          pembimbing: {
+            select: {
+              id: true,
+              nama: true,
+              email: true,
+            },
           },
         },
-        pembimbing: {
-          select: {
-            id: true,
-            nama: true,
-            email: true,
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        orderBy: { createdAt: 'desc' },
+      });
 
-    return businesses;
+      return businesses;
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
+    }
   }
 
   async approveBusiness(businessId, adminId) {
-    const business = await prisma.usaha.findUnique({
-      where: { id: businessId },
-    });
+    try {
+      // Validasi: Cek apakah business ada
+      const business = await prisma.usaha.findUnique({
+        where: { id: businessId },
+      });
 
-    if (!business) {
-      const error = new Error('Usaha tidak ditemukan');
-      error.statusCode = 404;
-      throw error;
+      if (!business) {
+        const error = new Error('Usaha tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      // Validasi: Cek apakah sudah disetujui
+      if (business.disetujui) {
+        const error = new Error('Usaha sudah disetujui sebelumnya');
+        error.statusCode = 400;
+        throw error;
+      }
+
+      // Update business
+      const updatedBusiness = await prisma.usaha.update({
+        where: { id: businessId },
+        data: {
+          disetujui: true,
+          tanggalDisetujui: new Date(),
+        },
+        include: {
+          pemilik: true,
+        },
+      });
+
+      // Notify user about approval
+      await this.notificationService.notifyBusinessApproved(updatedBusiness.id);
+
+      return updatedBusiness;
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
     }
-
-    if (business.disetujui) {
-      const error = new Error('Usaha sudah disetujui sebelumnya');
-      error.statusCode = 400;
-      throw error;
-    }
-
-    const updatedBusiness = await prisma.usaha.update({
-      where: { id: businessId },
-      data: {
-        disetujui: true,
-        tanggalDisetujui: new Date(),
-      },
-      include: {
-        pemilik: true,
-      },
-    });
-
-    // Notify user about approval
-    await this.notificationService.notifyBusinessApproved(updatedBusiness.id);
-
-    return updatedBusiness;
   }
 
   async assignBoothNumber(businessId, nomorBooth) {
-    // Check if booth number already used
-    const business = await prisma.usaha.findUnique({
-      where: { id: businessId },
-      include: { event: true },
-    });
+    try {
+      // Validasi: Cek apakah business ada
+      const business = await prisma.usaha.findUnique({
+        where: { id: businessId },
+        include: { event: true },
+      });
 
-    if (!business) {
-      const error = new Error('Usaha tidak ditemukan');
-      error.statusCode = 404;
-      throw error;
+      if (!business) {
+        const error = new Error('Usaha tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      // Validasi: Cek apakah sudah disetujui
+      if (!business.disetujui) {
+        const error = new Error('Usaha harus disetujui terlebih dahulu');
+        error.statusCode = 400;
+        throw error;
+      }
+
+      // Validasi: Cek apakah nomor booth sudah digunakan
+      const existingBooth = await prisma.usaha.findFirst({
+        where: {
+          eventId: business.eventId,
+          nomorBooth: nomorBooth.trim(),
+          id: { not: businessId },
+        },
+      });
+
+      if (existingBooth) {
+        const error = new Error('Nomor booth sudah digunakan');
+        error.statusCode = 409;
+        throw error;
+      }
+
+      // Update business
+      const updatedBusiness = await prisma.usaha.update({
+        where: { id: businessId },
+        data: { nomorBooth: nomorBooth.trim() },
+      });
+
+      return updatedBusiness;
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
     }
-
-    if (!business.disetujui) {
-      const error = new Error('Usaha harus disetujui terlebih dahulu');
-      error.statusCode = 400;
-      throw error;
-    }
-
-    const existingBooth = await prisma.usaha.findFirst({
-      where: {
-        eventId: business.eventId,
-        nomorBooth,
-        id: { not: businessId },
-      },
-    });
-
-    if (existingBooth) {
-      const error = new Error('Nomor booth sudah digunakan');
-      error.statusCode = 400;
-      throw error;
-    }
-
-    const updatedBusiness = await prisma.usaha.update({
-      where: { id: businessId },
-      data: { nomorBooth },
-    });
-
-    return updatedBusiness;
   }
 }

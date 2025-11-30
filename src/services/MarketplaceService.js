@@ -9,142 +9,81 @@ export class MarketplaceService {
   // ========== EVENT CRUD ==========
 
   async createEvent(data, adminId) {
-    const {
-      nama,
-      deskripsi,
-      semester,
-      tahunAjaran,
-      lokasi,
-      tanggalPelaksanaan,
-      mulaiPendaftaran,
-      akhirPendaftaran,
-      kuotaPeserta,
-      sponsor,
-      kategoriPenilaian,
-    } = data;
-
-    // Validate dates
-    const eventDate = new Date(tanggalPelaksanaan);
-    const regStart = new Date(mulaiPendaftaran);
-    const regEnd = new Date(akhirPendaftaran);
-
-    if (regStart >= regEnd) {
-      const error = new Error(
-        'Tanggal mulai pendaftaran harus sebelum tanggal akhir'
-      );
-      error.statusCode = 400;
-      throw error;
-    }
-
-    if (regEnd >= eventDate) {
-      const error = new Error(
-        'Tanggal akhir pendaftaran harus sebelum tanggal pelaksanaan'
-      );
-      error.statusCode = 400;
-      throw error;
-    }
-
-    // Create event with sponsors and assessment categories
-    const event = await prisma.eventMarketplace.create({
-      data: {
+    try {
+      const {
         nama,
         deskripsi,
         semester,
         tahunAjaran,
         lokasi,
-        tanggalPelaksanaan: eventDate,
-        mulaiPendaftaran: regStart,
-        akhirPendaftaran: regEnd,
-        kuotaPeserta: parseInt(kuotaPeserta),
-        status: 'TERBUKA',
-        sponsor: sponsor
-          ? {
-              create: sponsor.map((s) => ({
-                nama: s.nama,
-                logo: s.logo,
-              })),
-            }
-          : undefined,
-        kategoriPenilaian: kategoriPenilaian
-          ? {
-              create: kategoriPenilaian.map((k) => ({
-                nama: k.nama,
-                deskripsi: k.deskripsi,
-                penilai: {
-                  connect: k.penilaiIds.map((id) => ({ id })),
-                },
-                kriteria: {
-                  create: k.kriteria.map((kr) => ({
-                    nama: kr.nama,
-                    bobot: parseInt(kr.bobot),
-                  })),
-                },
-              })),
-            }
-          : undefined,
-      },
-      include: {
-        sponsor: true,
-        kategoriPenilaian: {
-          include: {
-            penilai: {
-              select: {
-                id: true,
-                nama: true,
-                email: true,
-              },
-            },
-            kriteria: true,
-          },
+        tanggalPelaksanaan,
+        mulaiPendaftaran,
+        akhirPendaftaran,
+        kuotaPeserta,
+        sponsor,
+        kategoriPenilaian,
+      } = data;
+
+      // Validasi: Validasi tanggal
+      const eventDate = new Date(tanggalPelaksanaan);
+      const regStart = new Date(mulaiPendaftaran);
+      const regEnd = new Date(akhirPendaftaran);
+
+      if (regStart >= regEnd) {
+        const error = new Error(
+          'Tanggal mulai pendaftaran harus sebelum tanggal akhir'
+        );
+        error.statusCode = 400;
+        throw error;
+      }
+
+      if (regEnd >= eventDate) {
+        const error = new Error(
+          'Tanggal akhir pendaftaran harus sebelum tanggal pelaksanaan'
+        );
+        error.statusCode = 400;
+        throw error;
+      }
+
+      // Create event with sponsors and assessment categories
+      const event = await prisma.eventMarketplace.create({
+        data: {
+          nama: nama.trim(),
+          deskripsi: deskripsi.trim(),
+          semester: semester.trim(),
+          tahunAjaran: tahunAjaran.trim(),
+          lokasi: lokasi.trim(),
+          tanggalPelaksanaan: eventDate,
+          mulaiPendaftaran: regStart,
+          akhirPendaftaran: regEnd,
+          kuotaPeserta: parseInt(kuotaPeserta),
+          status: 'TERBUKA',
+          sponsor: sponsor
+            ? {
+                create: sponsor.map((s) => ({
+                  nama: s.nama.trim(),
+                  logo: s.logo.trim(),
+                })),
+              }
+            : undefined,
+          kategoriPenilaian: kategoriPenilaian
+            ? {
+                create: kategoriPenilaian.map((k) => ({
+                  nama: k.nama.trim(),
+                  deskripsi: k.deskripsi?.trim() || null,
+                  penilai: {
+                    connect: k.penilaiIds.map((id) => ({ id })),
+                  },
+                  kriteria: {
+                    create: k.kriteria.map((kr) => ({
+                      nama: kr.nama.trim(),
+                      bobot: parseInt(kr.bobot),
+                    })),
+                  },
+                })),
+              }
+            : undefined,
         },
-      },
-    });
-
-    // Trigger notification for new event
-    await this.notificationService.notifyEventCreated(event.id);
-
-    return event;
-  }
-
-  async getEvents(filters = {}) {
-    const {
-      page = 1,
-      limit = 10,
-      status,
-      semester,
-      tahunAjaran,
-      search,
-    } = filters;
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-
-    const where = {};
-
-    if (status) {
-      where.status = status;
-    }
-
-    if (semester) {
-      where.semester = semester;
-    }
-
-    if (tahunAjaran) {
-      where.tahunAjaran = tahunAjaran;
-    }
-
-    if (search) {
-      where.OR = [
-        { nama: { contains: search, mode: 'insensitive' } },
-        { deskripsi: { contains: search, mode: 'insensitive' } },
-        { lokasi: { contains: search, mode: 'insensitive' } },
-      ];
-    }
-
-    const [events, total] = await Promise.all([
-      prisma.eventMarketplace.findMany({
-        where,
-        skip,
-        take: parseInt(limit),
-        orderBy: { createdAt: 'desc' },
         include: {
           sponsor: true,
           kategoriPenilaian: {
@@ -153,306 +92,526 @@ export class MarketplaceService {
                 select: {
                   id: true,
                   nama: true,
+                  email: true,
+                },
+              },
+              kriteria: true,
+            },
+          },
+        },
+      });
+
+      // Trigger notification for new event
+      await this.notificationService.notifyEventCreated(event.id);
+
+      return event;
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
+    }
+  }
+
+  async getEvents(filters = {}) {
+    try {
+      const {
+        page = 1,
+        limit = 10,
+        status,
+        semester,
+        tahunAjaran,
+        search,
+      } = filters;
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+
+      const where = {};
+
+      if (status) {
+        where.status = status;
+      }
+
+      if (semester) {
+        where.semester = semester;
+      }
+
+      if (tahunAjaran) {
+        where.tahunAjaran = tahunAjaran;
+      }
+
+      if (search) {
+        where.OR = [
+          { nama: { contains: search, mode: 'insensitive' } },
+          { deskripsi: { contains: search, mode: 'insensitive' } },
+          { lokasi: { contains: search, mode: 'insensitive' } },
+        ];
+      }
+
+      const [events, total] = await Promise.all([
+        prisma.eventMarketplace.findMany({
+          where,
+          skip,
+          take: parseInt(limit),
+          orderBy: { createdAt: 'desc' },
+          include: {
+            sponsor: true,
+            kategoriPenilaian: {
+              include: {
+                penilai: {
+                  select: {
+                    id: true,
+                    nama: true,
+                  },
+                },
+              },
+            },
+            _count: {
+              select: {
+                usaha: true,
+              },
+            },
+          },
+        }),
+        prisma.eventMarketplace.count({ where }),
+      ]);
+
+      return {
+        events,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          totalPages: Math.ceil(total / parseInt(limit)),
+        },
+      };
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
+    }
+  }
+
+  async getEventById(eventId, userId = null, userRole = null) {
+    try {
+      // Validasi: Cek apakah event ada
+      const event = await prisma.eventMarketplace.findUnique({
+        where: { id: eventId },
+        include: {
+          sponsor: true,
+          kategoriPenilaian: {
+            include: {
+              penilai: {
+                select: {
+                  id: true,
+                  nama: true,
+                  email: true,
+                },
+              },
+              kriteria: true,
+              pemenang: {
+                select: {
+                  id: true,
+                  namaProduk: true,
+                  tipeUsaha: true,
                 },
               },
             },
           },
-          _count: {
-            select: {
-              usaha: true,
+          usaha: {
+            include: {
+              pemilik: {
+                select: {
+                  id: true,
+                  nama: true,
+                  email: true,
+                },
+              },
+              pembimbing: {
+                select: {
+                  id: true,
+                  nama: true,
+                },
+              },
             },
+            orderBy: { createdAt: 'desc' },
           },
         },
-      }),
-      prisma.eventMarketplace.count({ where }),
-    ]);
+      });
 
-    return {
-      events,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        totalPages: Math.ceil(total / parseInt(limit)),
-      },
-    };
-  }
+      if (!event) {
+        const error = new Error('Event tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
 
-  async getEventById(eventId, userId = null, userRole = null) {
-    const event = await prisma.eventMarketplace.findUnique({
-      where: { id: eventId },
-      include: {
-        sponsor: true,
-        kategoriPenilaian: {
-          include: {
-            penilai: {
-              select: {
-                id: true,
-                nama: true,
-                email: true,
-              },
-            },
-            kriteria: true,
-            pemenang: {
-              select: {
-                id: true,
-                namaProduk: true,
-                tipeUsaha: true,
-              },
-            },
-          },
-        },
-        usaha: {
-          include: {
-            pemilik: {
-              select: {
-                id: true,
-                nama: true,
-                email: true,
-              },
-            },
-            pembimbing: {
-              select: {
-                id: true,
-                nama: true,
-              },
-            },
-          },
-          orderBy: { createdAt: 'desc' },
-        },
-      },
-    });
+      // Validasi: Filter data berdasarkan role dan event status
+      if (userRole !== 'ADMIN' && event.status === 'DRAFT') {
+        const error = new Error('Event tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
 
-    if (!event) {
-      const error = new Error('Event tidak ditemukan');
-      error.statusCode = 404;
-      throw error;
+      return event;
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
     }
-
-    // Filter data based on role and event status
-    if (userRole !== 'ADMIN' && event.status === 'DRAFT') {
-      const error = new Error('Event tidak ditemukan');
-      error.statusCode = 404;
-      throw error;
-    }
-
-    return event;
   }
 
   async updateEvent(eventId, data) {
-    // Check if event exists
-    const existingEvent = await prisma.eventMarketplace.findUnique({
-      where: { id: eventId },
-    });
+    try {
+      // Validasi: Cek apakah event ada
+      const existingEvent = await prisma.eventMarketplace.findUnique({
+        where: { id: eventId },
+      });
 
-    if (!existingEvent) {
-      const error = new Error('Event tidak ditemukan');
-      error.statusCode = 404;
-      throw error;
-    }
+      if (!existingEvent) {
+        const error = new Error('Event tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
 
-    if (existingEvent.terkunci) {
-      const error = new Error('Event sudah terkunci, tidak dapat diubah');
-      error.statusCode = 400;
-      throw error;
-    }
+      // Validasi: Cek apakah event terkunci
+      if (existingEvent.terkunci) {
+        const error = new Error('Event sudah terkunci, tidak dapat diubah');
+        error.statusCode = 400;
+        throw error;
+      }
 
-    const {
-      nama,
-      deskripsi,
-      semester,
-      tahunAjaran,
-      lokasi,
-      tanggalPelaksanaan,
-      mulaiPendaftaran,
-      akhirPendaftaran,
-      kuotaPeserta,
-      status,
-    } = data;
-
-    const event = await prisma.eventMarketplace.update({
-      where: { id: eventId },
-      data: {
+      const {
         nama,
         deskripsi,
         semester,
         tahunAjaran,
         lokasi,
-        tanggalPelaksanaan: tanggalPelaksanaan
-          ? new Date(tanggalPelaksanaan)
-          : undefined,
-        mulaiPendaftaran: mulaiPendaftaran
-          ? new Date(mulaiPendaftaran)
-          : undefined,
-        akhirPendaftaran: akhirPendaftaran
-          ? new Date(akhirPendaftaran)
-          : undefined,
-        kuotaPeserta: kuotaPeserta ? parseInt(kuotaPeserta) : undefined,
+        tanggalPelaksanaan,
+        mulaiPendaftaran,
+        akhirPendaftaran,
+        kuotaPeserta,
         status,
-      },
-      include: {
-        sponsor: true,
-        kategoriPenilaian: {
-          include: {
-            kriteria: true,
-            penilai: true,
+      } = data;
+
+      // Prepare update data (hanya field yang diisi)
+      const updateData = {};
+      if (nama !== undefined) updateData.nama = nama.trim();
+      if (deskripsi !== undefined) updateData.deskripsi = deskripsi.trim();
+      if (semester !== undefined) updateData.semester = semester.trim();
+      if (tahunAjaran !== undefined)
+        updateData.tahunAjaran = tahunAjaran.trim();
+      if (lokasi !== undefined) updateData.lokasi = lokasi.trim();
+      if (tanggalPelaksanaan !== undefined)
+        updateData.tanggalPelaksanaan = new Date(tanggalPelaksanaan);
+      if (mulaiPendaftaran !== undefined)
+        updateData.mulaiPendaftaran = new Date(mulaiPendaftaran);
+      if (akhirPendaftaran !== undefined)
+        updateData.akhirPendaftaran = new Date(akhirPendaftaran);
+      if (kuotaPeserta !== undefined)
+        updateData.kuotaPeserta = parseInt(kuotaPeserta);
+      if (status !== undefined) updateData.status = status;
+
+      const event = await prisma.eventMarketplace.update({
+        where: { id: eventId },
+        data: updateData,
+        include: {
+          sponsor: true,
+          kategoriPenilaian: {
+            include: {
+              kriteria: true,
+              penilai: true,
+            },
           },
         },
-      },
-    });
-    // Notify status change if status changed
-    if (status && status !== existingEvent.status) {
-      await this.notificationService.notifyEventStatusChanged(event.id, status);
-    }
+      });
 
-    return event;
+      // Notify status change if status changed
+      if (status && status !== existingEvent.status) {
+        await this.notificationService.notifyEventStatusChanged(
+          event.id,
+          status
+        );
+      }
+
+      return event;
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
+    }
   }
 
   async deleteEvent(eventId) {
-    const event = await prisma.eventMarketplace.findUnique({
-      where: { id: eventId },
-      include: {
-        _count: {
-          select: { usaha: true },
+    try {
+      // Validasi: Cek apakah event ada
+      const event = await prisma.eventMarketplace.findUnique({
+        where: { id: eventId },
+        include: {
+          _count: {
+            select: { usaha: true },
+          },
         },
-      },
-    });
+      });
 
-    if (!event) {
-      const error = new Error('Event tidak ditemukan');
-      error.statusCode = 404;
-      throw error;
+      if (!event) {
+        const error = new Error('Event tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      // Validasi: Cegah penghapusan event yang memiliki peserta
+      if (event._count.usaha > 0) {
+        const error = new Error(
+          'Event tidak dapat dihapus karena sudah ada peserta terdaftar. Silakan hapus peserta terlebih dahulu.'
+        );
+        error.statusCode = 400;
+        throw error;
+      }
+
+      // Delete event
+      await prisma.eventMarketplace.delete({
+        where: { id: eventId },
+      });
+
+      return { message: 'Event berhasil dihapus' };
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
     }
-
-    if (event._count.usaha > 0) {
-      const error = new Error(
-        'Event tidak dapat dihapus karena sudah ada peserta terdaftar'
-      );
-      error.statusCode = 400;
-      throw error;
-    }
-
-    await prisma.eventMarketplace.delete({
-      where: { id: eventId },
-    });
-
-    return { message: 'Event berhasil dihapus' };
   }
 
   async lockEvent(eventId) {
-    const event = await prisma.eventMarketplace.findUnique({
-      where: { id: eventId },
-      include: {
-        usaha: {
-          where: { disetujui: true },
+    try {
+      // Validasi: Cek apakah event ada
+      const event = await prisma.eventMarketplace.findUnique({
+        where: { id: eventId },
+        include: {
+          usaha: {
+            where: { disetujui: true },
+          },
         },
-      },
-    });
+      });
 
-    if (!event) {
-      const error = new Error('Event tidak ditemukan');
-      error.statusCode = 404;
-      throw error;
+      if (!event) {
+        const error = new Error('Event tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      // Validasi: Semua peserta yang disetujui harus memiliki nomor booth
+      const businessesWithoutBooth = event.usaha.filter((u) => !u.nomorBooth);
+
+      if (businessesWithoutBooth.length > 0) {
+        const error = new Error(
+          'Semua peserta yang disetujui harus memiliki nomor booth sebelum mengunci event'
+        );
+        error.statusCode = 400;
+        throw error;
+      }
+
+      // Lock event
+      const updatedEvent = await prisma.eventMarketplace.update({
+        where: { id: eventId },
+        data: { terkunci: true },
+      });
+
+      return updatedEvent;
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
     }
-
-    // Validate all approved businesses have booth numbers
-    const businessesWithoutBooth = event.usaha.filter((u) => !u.nomorBooth);
-
-    if (businessesWithoutBooth.length > 0) {
-      const error = new Error(
-        'Semua peserta yang disetujui harus memiliki nomor booth sebelum mengunci event'
-      );
-      error.statusCode = 400;
-      throw error;
-    }
-
-    const updatedEvent = await prisma.eventMarketplace.update({
-      where: { id: eventId },
-      data: { terkunci: true },
-    });
-
-    return updatedEvent;
   }
 
   async unlockEvent(eventId) {
-    const updatedEvent = await prisma.eventMarketplace.update({
-      where: { id: eventId },
-      data: { terkunci: false },
-    });
+    try {
+      // Validasi: Cek apakah event ada
+      const event = await prisma.eventMarketplace.findUnique({
+        where: { id: eventId },
+      });
 
-    return updatedEvent;
+      if (!event) {
+        const error = new Error('Event tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      // Unlock event
+      const updatedEvent = await prisma.eventMarketplace.update({
+        where: { id: eventId },
+        data: { terkunci: false },
+      });
+
+      return updatedEvent;
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
+    }
   }
 
   async uploadLayout(eventId, layoutUrl) {
-    const event = await prisma.eventMarketplace.update({
-      where: { id: eventId },
-      data: { gambarLayout: layoutUrl },
-    });
+    try {
+      // Validasi: Cek apakah event ada
+      const event = await prisma.eventMarketplace.findUnique({
+        where: { id: eventId },
+      });
 
-    return event;
+      if (!event) {
+        const error = new Error('Event tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      // Update layout
+      const updatedEvent = await prisma.eventMarketplace.update({
+        where: { id: eventId },
+        data: { gambarLayout: layoutUrl },
+      });
+
+      return updatedEvent;
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
+    }
   }
 
   // ========== SPONSOR MANAGEMENT ==========
 
   async addSponsor(eventId, sponsorData) {
-    const sponsor = await prisma.sponsor.create({
-      data: {
-        nama: sponsorData.nama,
-        logo: sponsorData.logo,
-        eventId,
-      },
-    });
+    try {
+      // Validasi: Cek apakah event ada
+      const event = await prisma.eventMarketplace.findUnique({
+        where: { id: eventId },
+      });
 
-    return sponsor;
+      if (!event) {
+        const error = new Error('Event tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const { nama, logo } = sponsorData;
+
+      // Create sponsor
+      const sponsor = await prisma.sponsor.create({
+        data: {
+          nama: nama.trim(),
+          logo: logo.trim(),
+          eventId,
+        },
+      });
+
+      return sponsor;
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
+    }
   }
 
   async updateSponsor(sponsorId, data) {
-    const sponsor = await prisma.sponsor.update({
-      where: { id: sponsorId },
-      data: {
-        nama: data.nama,
-        logo: data.logo,
-      },
-    });
+    try {
+      // Validasi: Cek apakah sponsor ada
+      const existingSponsor = await prisma.sponsor.findUnique({
+        where: { id: sponsorId },
+      });
 
-    return sponsor;
+      if (!existingSponsor) {
+        const error = new Error('Sponsor tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      // Prepare update data (hanya field yang diisi)
+      const updateData = {};
+      if (data.nama !== undefined) updateData.nama = data.nama.trim();
+      if (data.logo !== undefined) updateData.logo = data.logo.trim();
+
+      // Update sponsor
+      const sponsor = await prisma.sponsor.update({
+        where: { id: sponsorId },
+        data: updateData,
+      });
+
+      return sponsor;
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
+    }
   }
 
   async deleteSponsor(sponsorId) {
-    await prisma.sponsor.delete({
-      where: { id: sponsorId },
-    });
+    try {
+      // Validasi: Cek apakah sponsor ada
+      const sponsor = await prisma.sponsor.findUnique({
+        where: { id: sponsorId },
+      });
 
-    return { message: 'Sponsor berhasil dihapus' };
+      if (!sponsor) {
+        const error = new Error('Sponsor tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      // Delete sponsor
+      await prisma.sponsor.delete({
+        where: { id: sponsorId },
+      });
+
+      return { message: 'Sponsor berhasil dihapus' };
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
+    }
   }
 
   async getUserMarketplaceHistory(userId) {
-    console.log('Getting marketplace history for user:', userId);
-    const history = await prisma.riwayatMarketplace.findMany({
-      where: { userId },
-      include: {
-        event: {
-          include: {
-            sponsor: true,
-            _count: {
-              select: { usaha: true },
+    try {
+      // Validasi: Cek apakah user ada
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        const error = new Error('User tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      // Get history
+      const history = await prisma.riwayatMarketplace.findMany({
+        where: { userId },
+        include: {
+          event: {
+            include: {
+              sponsor: true,
+              _count: {
+                select: { usaha: true },
+              },
+            },
+          },
+          usaha: {
+            select: {
+              id: true,
+              namaProduk: true,
+              kategori: true,
+              tipeUsaha: true,
+              nomorBooth: true,
+              disetujui: true,
             },
           },
         },
-        usaha: {
-          select: {
-            id: true,
-            namaProduk: true,
-            kategori: true,
-            tipeUsaha: true,
-            nomorBooth: true,
-            disetujui: true,
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        orderBy: { createdAt: 'desc' },
+      });
 
-    return history;
+      return history;
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
+    }
   }
 }
