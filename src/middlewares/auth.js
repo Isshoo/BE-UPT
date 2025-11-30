@@ -8,11 +8,7 @@ export class AuthMiddleware {
       const authHeader = req.headers.authorization;
 
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return ApiResponse.error(
-          res,
-          'Token tidak ditemukan',
-          401,
-        );
+        return ApiResponse.error(res, 'Token tidak ditemukan', 401);
       }
 
       const token = authHeader.split(' ')[1];
@@ -32,11 +28,7 @@ export class AuthMiddleware {
       });
 
       if (!user) {
-        return ApiResponse.error(
-          res,
-          'User tidak ditemukan',
-          401,
-        );
+        return ApiResponse.error(res, 'User tidak ditemukan', 401);
       }
 
       req.user = user;
@@ -44,8 +36,8 @@ export class AuthMiddleware {
     } catch (error) {
       return ApiResponse.error(
         res,
-        'Token tidak valid',
-        401,
+        error.message || 'Token tidak valid',
+        error.statusCode || 401
       );
     }
   }
@@ -53,19 +45,11 @@ export class AuthMiddleware {
   static authorize(...roles) {
     return (req, res, next) => {
       if (!req.user) {
-        return ApiResponse.error(
-          res,
-          'Unauthorized',
-          401,
-        );
+        return ApiResponse.error(res, 'Unauthorized', 401);
       }
 
       if (!roles.includes(req.user.role)) {
-        return ApiResponse.error(
-          res,
-          'Anda tidak memiliki akses',
-          403,
-        );
+        return ApiResponse.error(res, 'Anda tidak memiliki akses', 403);
       }
 
       next();

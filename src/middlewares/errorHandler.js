@@ -1,64 +1,43 @@
 import { ApiResponse } from '../utils/response.js';
+import { logger } from '../utils/logger.js';
 
 export class ErrorHandler {
-  static handle(err, req, res, next) {
-    console.error('❌ Error:', err);
+  static handle(err, req, res, next = null) {
+    // Log error dengan structured logging
+    logger.error('Error occurred', {
+      message: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+      url: req?.url,
+      method: req?.method,
+      userId: req?.user?.id,
+      code: err.code,
+      name: err.name,
+      statusCode: err.statusCode,
+    });
 
-    // Prisma errors
-    if (err.code === 'P2002') {
-      return ApiResponse.error(res, 'Data sudah ada dalam database', 400, {
-        field: err.meta?.target,
-      });
-    }
-
-    if (err.code === 'P2025') {
-      return ApiResponse.error(res, 'Data tidak ditemukan', 404);
-    }
-
-    // Validation errors
-    if (err.name === 'ValidationError') {
-      return ApiResponse.error(res, 'Validasi gagal', 400, err.errors);
-    }
-
-    // JWT errors
-    if (err.name === 'JsonWebTokenError') {
-      return ApiResponse.error(res, 'Token tidak valid', 401);
-    }
-
-    if (err.name === 'TokenExpiredError') {
-      return ApiResponse.error(res, 'Token sudah kadaluarsa', 401);
-    }
-
-    // Custom error dengan statusCode
+    // Default error handling
     const statusCode = err.statusCode || 500;
     const message = err.message || 'Terjadi kesalahan pada server';
 
-    return ApiResponse.error(res, message, statusCode);
+    // Jangan expose error detail di production untuk 500 errors
+    const errorMessage =
+      process.env.NODE_ENV === 'production' && statusCode === 500
+        ? 'Terjadi kesalahan pada server. Silakan coba lagi nanti.'
+        : message;
+
+    return ApiResponse.error(res, errorMessage, statusCode);
   }
 
   static notFound(req, res) {
-    console.log(`❌ 404 - Route not found: ${req.method} ${req.path}`);
+    logger.warn('Route not found', {
+      method: req.method,
+      path: req.path,
+      ip: req.ip,
+    });
     return ApiResponse.error(
       res,
-      `Route ${req.method} ${req.path} tidak ditemukan`,
+      `Route ${req.method} ${req.path} tidak ditemukan. Periksa URL dan method yang digunakan.`,
       404
     );
   }
 }
-
-import { logger } from '../utils/logger.js';
-
-export const errorHandler = (err, req, res, next) => {
-  // Log error
-  logger.error('Error occurred', {
-    message: err.message,
-    stack: err.stack,
-    url: req.url,
-    method: req.method,
-  });
-
-  const statusCode = err.statusCode || 500;
-  const message = err.message || 'Internal Server Error';
-
-  return ApiResponse.error(res, message, statusCode);
-};

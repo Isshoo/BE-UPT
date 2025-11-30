@@ -44,7 +44,8 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
     "multer-storage-cloudinary": "^4.0.0",
-    "pdfkit": "^0.17.2"
+    "pdfkit": "^0.17.2",
+    "zod": "^4.1.13"
   },
   "devDependencies": {
     "eslint": "^9.37.0",

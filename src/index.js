@@ -4,27 +4,37 @@ import dotenv from 'dotenv';
 import routes from './routes/index.js';
 import { ErrorHandler } from './middlewares/index.js';
 import { apiLimiter } from './middlewares/rateLimiter.js';
+import { validateEnv } from './config/env.js';
+import { logger } from './utils/logger.js';
 
 // Load environment variables
 dotenv.config();
+
+// Validate environment variables
+validateEnv();
 
 const app = express();
 const PORT = process.env.PORT || 5001;
 
 // Middlewares
-app.use(
-  cors({
-    origin: '*', // Sementara allow all origins untuk testing
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  })
-);
+const corsOptions = {
+  origin: '*',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+};
+
+app.use(cors(corsOptions));
 
 app.use(express.json());
 
 // Request logging
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  logger.info('Incoming request', {
+    method: req.method,
+    path: req.path,
+    ip: req.ip,
+    userAgent: req.get('user-agent'),
+  });
   next();
 });
 

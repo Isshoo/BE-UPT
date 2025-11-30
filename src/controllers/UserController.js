@@ -1,14 +1,38 @@
 import { UserService } from '../services/UserService.js';
 import { ApiResponse } from '../utils/response.js';
+import { validateRequest } from '../utils/validators.js';
+import {
+  getUsersQuerySchema,
+  createUserSchema,
+  updateUserSchema,
+  getUserByIdSchema,
+  resetPasswordSchema,
+} from '../schemas/user.schema.js';
 
 export class UserController {
   constructor() {
     this.userService = new UserService();
   }
 
-  getUsersGuest = async (req, res, next) => {
+  getUsersGuest = async (req, res) => {
     try {
-      const result = await this.userService.getUsersGuest(req.query);
+      // Validasi query params
+      await validateRequest(req, {
+        schema: getUsersQuerySchema,
+      });
+
+      // Extract validated query params
+      const { role, page, limit, search } = req.query;
+
+      // Panggil service
+      const result = await this.userService.getUsersGuest({
+        role,
+        page,
+        limit,
+        search,
+      });
+
+      // Return success response
       return ApiResponse.paginate(
         res,
         result.users,
@@ -18,12 +42,34 @@ export class UserController {
         'Data user berhasil diambil'
       );
     } catch (error) {
-      next(error);
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
     }
   };
-  getUsers = async (req, res, next) => {
+
+  getUsers = async (req, res) => {
     try {
-      const result = await this.userService.getUsers(req.query);
+      // Validasi query params
+      await validateRequest(req, {
+        schema: getUsersQuerySchema,
+      });
+
+      // Extract validated query params
+      const { role, page, limit, search } = req.query;
+
+      // Panggil service
+      const result = await this.userService.getUsers({
+        role,
+        page,
+        limit,
+        search,
+      });
+
+      // Return success response
       return ApiResponse.paginate(
         res,
         result.users,
@@ -33,65 +79,196 @@ export class UserController {
         'Data user berhasil diambil'
       );
     } catch (error) {
-      next(error);
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
     }
   };
 
-  getUserById = async (req, res, next) => {
+  getUserById = async (req, res) => {
     try {
-      const user = await this.userService.getUserById(req.params.id);
-      return ApiResponse.success(res, user, 'Detail user berhasil diambil');
+      // Validasi params
+      await validateRequest(req, {
+        schema: getUserByIdSchema,
+      });
+
+      // Extract validated params
+      const { id } = req.params;
+
+      // Panggil service
+      const user = await this.userService.getUserById(id);
+
+      // Return success response
+      return ApiResponse.success(res, { user }, 'Detail user berhasil diambil');
     } catch (error) {
-      next(error);
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
     }
   };
 
-  createUser = async (req, res, next) => {
+  createUser = async (req, res) => {
     try {
-      const user = await this.userService.createUser(req.body);
-      return ApiResponse.success(res, user, 'User berhasil dibuat', 201);
+      // Validasi dengan Zod schema + Controller validation
+      await validateRequest(req, {
+        required: ['email', 'password', 'nama'],
+        allowed: ['email', 'password', 'nama', 'role', 'fakultas', 'prodi'],
+        schema: createUserSchema,
+      });
+
+      // Extract validated data (sudah divalidasi dan di-sanitize oleh Zod)
+      const { email, password, nama, role, fakultas, prodi } = req.body;
+
+      // Panggil service
+      const user = await this.userService.createUser({
+        email,
+        password,
+        nama,
+        role,
+        fakultas,
+        prodi,
+      });
+
+      // Return success response
+      return ApiResponse.success(res, { user }, 'User berhasil dibuat', 201);
     } catch (error) {
-      next(error);
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
     }
   };
 
-  updateUser = async (req, res, next) => {
+  updateUser = async (req, res) => {
     try {
-      const user = await this.userService.updateUser(req.params.id, req.body);
-      return ApiResponse.success(res, user, 'User berhasil diupdate');
+      // Validasi dengan Zod schema + Controller validation
+      await validateRequest(req, {
+        required: [],
+        allowed: ['nama', 'email', 'fakultas', 'prodi'],
+        schema: updateUserSchema,
+      });
+
+      // Validasi business rule: Minimal 1 field harus diisi untuk update
+      const { nama, email, fakultas, prodi } = req.body;
+      const hasAnyField =
+        nama !== undefined ||
+        email !== undefined ||
+        fakultas !== undefined ||
+        prodi !== undefined;
+
+      if (!hasAnyField) {
+        return ApiResponse.error(
+          res,
+          'Minimal satu field harus diisi untuk update user',
+          400,
+          [
+            {
+              field: 'body',
+              message:
+                'Minimal satu field (nama, email, fakultas, atau prodi) harus diisi',
+            },
+          ]
+        );
+      }
+
+      // Extract validated params
+      const { id } = req.params;
+
+      // Panggil service
+      const user = await this.userService.updateUser(id, {
+        nama,
+        email,
+        fakultas,
+        prodi,
+      });
+
+      // Return success response
+      return ApiResponse.success(res, { user }, 'User berhasil diupdate');
     } catch (error) {
-      next(error);
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
     }
   };
 
-  deleteUser = async (req, res, next) => {
+  deleteUser = async (req, res) => {
     try {
-      const result = await this.userService.deleteUser(req.params.id);
+      // Validasi params
+      await validateRequest(req, {
+        schema: getUserByIdSchema,
+      });
+
+      // Extract validated params
+      const { id } = req.params;
+
+      // Panggil service
+      const result = await this.userService.deleteUser(id);
+
+      // Return success response
       return ApiResponse.success(res, result, 'User berhasil dihapus');
     } catch (error) {
-      next(error);
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
     }
   };
 
-  resetPassword = async (req, res, next) => {
+  resetPassword = async (req, res) => {
     try {
+      // Validasi dengan Zod schema + Controller validation
+      await validateRequest(req, {
+        required: ['newPassword'],
+        allowed: ['newPassword'],
+        schema: resetPasswordSchema,
+      });
+
+      // Extract validated data
+      const { id } = req.params;
       const { newPassword } = req.body;
-      const result = await this.userService.resetPassword(
-        req.params.id,
-        newPassword
-      );
+
+      // Panggil service
+      const result = await this.userService.resetPassword(id, newPassword);
+
+      // Return success response
       return ApiResponse.success(res, result, 'Password berhasil direset');
     } catch (error) {
-      next(error);
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
     }
   };
 
-  getStatistics = async (req, res, next) => {
+  getStatistics = async (req, res) => {
     try {
+      // Panggil service
       const stats = await this.userService.getStatistics();
+
+      // Return success response
       return ApiResponse.success(res, stats, 'Statistik user berhasil diambil');
     } catch (error) {
-      next(error);
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
     }
   };
 }

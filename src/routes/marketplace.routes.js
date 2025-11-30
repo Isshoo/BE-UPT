@@ -2,7 +2,6 @@ import express from 'express';
 import { MarketplaceController } from '../controllers/index.js';
 import { AuthMiddleware } from '../middlewares/index.js';
 import { uploadImage } from '../config/index.js';
-import { ValidationMiddleware } from '../middlewares/index.js';
 
 const router = express.Router();
 const marketplaceController = new MarketplaceController();
@@ -29,7 +28,6 @@ router.post('/:eventId/register', marketplaceController.registerBusiness);
 router.post(
   '/',
   AuthMiddleware.authorize('ADMIN'),
-  ValidationMiddleware.validateEventCreation,
   marketplaceController.createEvent
 );
 

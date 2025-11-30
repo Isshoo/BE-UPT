@@ -7,16 +7,33 @@ import umkmRoutes from './umkm.routes.js';
 import notificationRoutes from './notification.routes.js';
 import dashboardRoutes from './dashboard.routes.js';
 import exportRoutes from './export.routes.js';
+import { prisma } from '../config/index.js';
 
 const router = express.Router();
 
 // Health check
-router.get('/health', (req, res) => {
-  res.json({
-    success: true,
-    message: 'API is running',
-    timestamp: new Date().toISOString(),
-  });
+router.get('/health', async (req, res) => {
+  try {
+    // Check database connection
+    await prisma.$queryRaw`SELECT 1`;
+
+    res.json({
+      success: true,
+      status: 'healthy',
+      message: 'API is running',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      database: 'connected',
+    });
+  } catch (error) {
+    res.status(503).json({
+      success: false,
+      status: 'unhealthy',
+      message: 'API is running but database is disconnected',
+      timestamp: new Date().toISOString(),
+      database: 'disconnected',
+    });
+  }
 });
 
 // Routes

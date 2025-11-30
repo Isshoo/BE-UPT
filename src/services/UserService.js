@@ -3,71 +3,186 @@ import { hashPassword } from '../utils/index.js';
 
 export class UserService {
   async getUsersGuest(filters = {}) {
-    const { role, page = 1, limit = 100, search } = filters;
+    try {
+      const { role, page = 1, limit = 100, search } = filters;
 
-    const where = {};
+      const where = {};
 
-    if (role) {
-      where.role = role;
+      if (role) {
+        where.role = role;
+      }
+
+      if (search) {
+        where.OR = [
+          { nama: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: 'insensitive' } },
+        ];
+      }
+
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+
+      const [users, total] = await Promise.all([
+        prisma.user.findMany({
+          where,
+          select: {
+            id: true,
+            nama: true,
+            role: true,
+            fakultas: true,
+            prodi: true,
+          },
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: parseInt(limit),
+        }),
+        prisma.user.count({ where }),
+      ]);
+
+      return {
+        users,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          totalPages: Math.ceil(total / parseInt(limit)),
+        },
+      };
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
     }
+  }
 
-    if (search) {
-      where.OR = [
-        { nama: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-      ];
+  async getUsers(filters = {}) {
+    try {
+      const { role, page = 1, limit = 100, search } = filters;
+
+      const where = {};
+
+      if (role) {
+        where.role = role;
+      }
+
+      if (search) {
+        where.OR = [
+          { nama: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: 'insensitive' } },
+        ];
+      }
+
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+
+      const [users, total] = await Promise.all([
+        prisma.user.findMany({
+          where,
+          select: {
+            id: true,
+            email: true,
+            nama: true,
+            role: true,
+            fakultas: true,
+            prodi: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: parseInt(limit),
+        }),
+        prisma.user.count({ where }),
+      ]);
+
+      return {
+        users,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          totalPages: Math.ceil(total / parseInt(limit)),
+        },
+      };
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
     }
+  }
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-
-    const [users, total] = await Promise.all([
-      prisma.user.findMany({
-        where,
+  async getUserById(userId) {
+    try {
+      // Validasi: Cek apakah user ada
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
         select: {
           id: true,
+          email: true,
           nama: true,
           role: true,
           fakultas: true,
           prodi: true,
+          createdAt: true,
+          updatedAt: true,
         },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: parseInt(limit),
-      }),
-      prisma.user.count({ where }),
-    ]);
+      });
 
-    return {
-      users,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        totalPages: Math.ceil(total / parseInt(limit)),
-      },
-    };
+      if (!user) {
+        const error = new Error('User tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      return user;
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
+    }
   }
-  async getUsers(filters = {}) {
-    const { role, page = 1, limit = 100, search } = filters;
 
-    const where = {};
+  async createUser(data) {
+    try {
+      const { email, password, nama, role = 'USER', fakultas, prodi } = data;
 
-    if (role) {
-      where.role = role;
-    }
+      // Validasi: Cek apakah email sudah terdaftar
+      const existingUser = await prisma.user.findUnique({
+        where: { email: email.toLowerCase().trim() },
+      });
 
-    if (search) {
-      where.OR = [
-        { nama: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-      ];
-    }
+      if (existingUser) {
+        const error = new Error(
+          'Email sudah terdaftar. Silakan gunakan email lain.'
+        );
+        error.statusCode = 409;
+        throw error;
+      }
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+      // Validasi: Cek apakah nama sudah terdaftar
+      // Gunakan findFirst karena nama bukan unique field
+      const existingName = await prisma.user.findFirst({
+        where: { nama: nama.trim() },
+      });
 
-    const [users, total] = await Promise.all([
-      prisma.user.findMany({
-        where,
+      if (existingName) {
+        const error = new Error(
+          'Nama sudah terdaftar. Silakan gunakan nama lain.'
+        );
+        error.statusCode = 409;
+        throw error;
+      }
+
+      // Hash password
+      const hashedPassword = await hashPassword(password);
+
+      // Create user
+      const user = await prisma.user.create({
+        data: {
+          email: email.toLowerCase().trim(),
+          password: hashedPassword,
+          nama: nama.trim(),
+          role,
+          fakultas: role === 'DOSEN' ? fakultas?.trim() || null : null,
+          prodi: role === 'DOSEN' ? prodi?.trim() || null : null,
+        },
         select: {
           id: true,
           email: true,
@@ -77,199 +192,189 @@ export class UserService {
           prodi: true,
           createdAt: true,
         },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: parseInt(limit),
-      }),
-      prisma.user.count({ where }),
-    ]);
+      });
 
-    return {
-      users,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        totalPages: Math.ceil(total / parseInt(limit)),
-      },
-    };
-  }
-
-  async getUserById(userId) {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        email: true,
-        nama: true,
-        role: true,
-        fakultas: true,
-        prodi: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-
-    if (!user) {
-      const error = new Error('User tidak ditemukan');
-      error.statusCode = 404;
-      throw error;
+      return user;
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
     }
-
-    return user;
-  }
-
-  async createUser(data) {
-    const { email, password, nama, role, fakultas, prodi } = data;
-
-    // Check if email already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (existingUser) {
-      const error = new Error('Email sudah terdaftar');
-      error.statusCode = 400;
-      throw error;
-    }
-
-    // Hash password
-    const hashedPassword = await hashPassword(password);
-
-    // Create user
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        nama,
-        role,
-        fakultas: role === 'DOSEN' ? fakultas : null,
-        prodi: role === 'DOSEN' ? prodi : null,
-      },
-      select: {
-        id: true,
-        email: true,
-        nama: true,
-        role: true,
-        fakultas: true,
-        prodi: true,
-        createdAt: true,
-      },
-    });
-
-    return user;
   }
 
   async updateUser(userId, data) {
-    const { nama, email, fakultas, prodi } = data;
+    try {
+      const { nama, email, fakultas, prodi } = data;
 
-    // Check if user exists
-    const existingUser = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!existingUser) {
-      const error = new Error('User tidak ditemukan');
-      error.statusCode = 404;
-      throw error;
-    }
-
-    // Check if email is being changed and already exists
-    if (email && email !== existingUser.email) {
-      const emailExists = await prisma.user.findUnique({
-        where: { email },
+      // Validasi: Cek apakah user ada
+      const existingUser = await prisma.user.findUnique({
+        where: { id: userId },
       });
 
-      if (emailExists) {
-        const error = new Error('Email sudah digunakan');
-        error.statusCode = 400;
+      if (!existingUser) {
+        const error = new Error('User tidak ditemukan');
+        error.statusCode = 404;
         throw error;
       }
+
+      // Validasi: Cek apakah email sedang diubah dan sudah digunakan
+      if (email && email.toLowerCase().trim() !== existingUser.email) {
+        const emailExists = await prisma.user.findUnique({
+          where: { email: email.toLowerCase().trim() },
+        });
+
+        if (emailExists) {
+          const error = new Error(
+            'Email sudah digunakan. Silakan gunakan email lain.'
+          );
+          error.statusCode = 409;
+          throw error;
+        }
+      }
+
+      // Validasi: Cek apakah nama sedang diubah dan sudah digunakan
+      if (nama && nama.trim() !== existingUser.nama) {
+        // Gunakan findFirst karena nama bukan unique field
+        const nameExists = await prisma.user.findFirst({
+          where: { nama: nama.trim() },
+        });
+
+        if (nameExists) {
+          const error = new Error(
+            'Nama sudah digunakan. Silakan gunakan nama lain.'
+          );
+          error.statusCode = 409;
+          throw error;
+        }
+      }
+
+      // Prepare update data (hanya field yang diisi)
+      const updateData = {};
+      if (nama !== undefined) updateData.nama = nama.trim();
+      if (email !== undefined) updateData.email = email.toLowerCase().trim();
+      if (existingUser.role === 'DOSEN') {
+        if (fakultas !== undefined)
+          updateData.fakultas = fakultas?.trim() || null;
+        if (prodi !== undefined) updateData.prodi = prodi?.trim() || null;
+      }
+
+      // Update user
+      const user = await prisma.user.update({
+        where: { id: userId },
+        data: updateData,
+        select: {
+          id: true,
+          email: true,
+          nama: true,
+          role: true,
+          fakultas: true,
+          prodi: true,
+          updatedAt: true,
+        },
+      });
+
+      return user;
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
     }
-
-    const user = await prisma.user.update({
-      where: { id: userId },
-      data: {
-        nama,
-        email,
-        fakultas: existingUser.role === 'DOSEN' ? fakultas : undefined,
-        prodi: existingUser.role === 'DOSEN' ? prodi : undefined,
-      },
-      select: {
-        id: true,
-        email: true,
-        nama: true,
-        role: true,
-        fakultas: true,
-        prodi: true,
-      },
-    });
-
-    return user;
   }
 
   async deleteUser(userId) {
-    // Check if user exists
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        _count: {
-          select: {
-            usaha: true,
-            umkm: true,
+    try {
+      // Validasi: Cek apakah user ada
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          _count: {
+            select: {
+              usaha: true,
+              umkm: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    if (!user) {
-      const error = new Error('User tidak ditemukan');
-      error.statusCode = 404;
-      throw error;
+      if (!user) {
+        const error = new Error('User tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      // Validasi: Cegah penghapusan user yang memiliki data terkait
+      if (user._count.usaha > 0 || user._count.umkm > 0) {
+        const error = new Error(
+          'User tidak dapat dihapus karena memiliki data terkait (usaha atau UMKM). Silakan hapus data terkait terlebih dahulu.'
+        );
+        error.statusCode = 400;
+        throw error;
+      }
+
+      // Delete user
+      await prisma.user.delete({
+        where: { id: userId },
+      });
+
+      return { message: 'User berhasil dihapus' };
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
     }
-
-    // Prevent deleting user with data
-    if (user._count.usaha > 0 || user._count.umkm > 0) {
-      const error = new Error(
-        'User tidak dapat dihapus karena memiliki data terkait'
-      );
-      error.statusCode = 400;
-      throw error;
-    }
-
-    await prisma.user.delete({
-      where: { id: userId },
-    });
-
-    return { message: 'User berhasil dihapus' };
   }
 
   async resetPassword(userId, newPassword) {
-    const hashedPassword = await hashPassword(newPassword);
+    try {
+      // Validasi: Cek apakah user ada
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      });
 
-    await prisma.user.update({
-      where: { id: userId },
-      data: { password: hashedPassword },
-    });
+      if (!user) {
+        const error = new Error('User tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
 
-    return { message: 'Password berhasil direset' };
+      // Hash password baru
+      const hashedPassword = await hashPassword(newPassword);
+
+      // Update password
+      await prisma.user.update({
+        where: { id: userId },
+        data: { password: hashedPassword },
+      });
+
+      return { message: 'Password berhasil direset' };
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
+    }
   }
 
   async getStatistics() {
-    const [total, byRole] = await Promise.all([
-      prisma.user.count(),
-      prisma.user.groupBy({
-        by: ['role'],
-        _count: true,
-      }),
-    ]);
+    try {
+      const [total, byRole] = await Promise.all([
+        prisma.user.count(),
+        prisma.user.groupBy({
+          by: ['role'],
+          _count: true,
+        }),
+      ]);
 
-    return {
-      total,
-      byRole: byRole.reduce((acc, item) => {
-        acc[item.role.toLowerCase()] = item._count;
-        return acc;
-      }, {}),
-    };
+      return {
+        total,
+        byRole: byRole.reduce((acc, item) => {
+          acc[item.role.toLowerCase()] = item._count;
+          return acc;
+        }, {}),
+      };
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
+    }
   }
 }
