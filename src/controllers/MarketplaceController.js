@@ -12,11 +12,13 @@ import {
   addSponsorSchema,
   updateSponsorSchema,
   deleteSponsorSchema,
+} from '../schemas/marketplace.schema.js';
+import {
   getBusinessesByEventSchema,
   approveBusinessSchema,
   assignBoothNumberSchema,
   registerBusinessSchema,
-} from '../schemas/marketplace.schema.js';
+} from '../schemas/business.schema.js';
 
 export class MarketplaceController {
   constructor() {
