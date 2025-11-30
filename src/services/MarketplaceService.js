@@ -45,6 +45,16 @@ export class MarketplaceService {
         throw error;
       }
 
+      // validasi nama event tidak boleh sama dengan nama event lain
+      const existingEvent = await prisma.eventMarketplace.findFirst({
+        where: { nama: nama.trim() },
+      });
+      if (existingEvent) {
+        const error = new Error('Nama event sudah ada');
+        error.statusCode = 400;
+        throw error;
+      }
+
       // Create event with sponsors and assessment categories
       const event = await prisma.eventMarketplace.create({
         data: {
@@ -290,6 +300,18 @@ export class MarketplaceService {
         kuotaPeserta,
         status,
       } = data;
+
+      // validasi nama event tidak boleh sama dengan nama event lain
+      const existingEventName = await prisma.eventMarketplace.findFirst({
+        where: { nama: nama.trim(), id: { not: eventId } },
+      });
+      if (existingEventName) {
+        const error = new Error(
+          'Nama event sudah ada. Silakan gunakan nama lain.'
+        );
+        error.statusCode = 400;
+        throw error;
+      }
 
       // Prepare update data (hanya field yang diisi)
       const updateData = {};

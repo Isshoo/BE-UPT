@@ -52,6 +52,18 @@ export class BusinessService {
         throw error;
       }
 
+      // validasi nama produk tidak boleh sama dengan nama produk lain
+      const existingProductName = await prisma.usaha.findFirst({
+        where: { namaProduk: businessData.namaProduk.trim(), eventId },
+      });
+      if (existingProductName) {
+        const error = new Error(
+          'Nama produk sudah ada. Silakan gunakan nama lain.'
+        );
+        error.statusCode = 400;
+        throw error;
+      }
+
       // Create business
       const business = await prisma.usaha.create({
         data: {
