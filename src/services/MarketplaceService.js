@@ -301,16 +301,18 @@ export class MarketplaceService {
         status,
       } = data;
 
-      // validasi nama event tidak boleh sama dengan nama event lain
-      const existingEventName = await prisma.eventMarketplace.findFirst({
-        where: { nama: nama.trim(), id: { not: eventId } },
-      });
-      if (existingEventName) {
-        const error = new Error(
-          'Nama event sudah ada. Silakan gunakan nama lain.'
-        );
-        error.statusCode = 400;
-        throw error;
+      if (nama !== undefined) {
+        // validasi nama event tidak boleh sama dengan nama event lain
+        const existingEventName = await prisma.eventMarketplace.findFirst({
+          where: { nama: nama.trim(), id: { not: eventId } },
+        });
+        if (existingEventName) {
+          const error = new Error(
+            'Nama event sudah ada. Silakan gunakan nama lain.'
+          );
+          error.statusCode = 400;
+          throw error;
+        }
       }
 
       // Prepare update data (hanya field yang diisi)
