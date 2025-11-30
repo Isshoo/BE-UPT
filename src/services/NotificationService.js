@@ -34,104 +34,172 @@ export class NotificationService {
   // ========== GET NOTIFICATIONS ==========
 
   async getUserNotifications(userId, filters = {}) {
-    const { page = 1, limit = 10, sudahBaca } = filters;
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    try {
+      // Validasi: Cek apakah user ada
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      });
 
-    const where = { userId };
+      if (!user) {
+        const error = new Error('User tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
 
-    if (sudahBaca !== undefined) {
-      where.sudahBaca = sudahBaca === 'true' || sudahBaca === true;
+      const { page = 1, limit = 10, sudahBaca } = filters;
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+
+      const where = { userId };
+
+      if (sudahBaca !== undefined) {
+        where.sudahBaca = sudahBaca === true || sudahBaca === 'true';
+      }
+
+      const [notifications, total] = await Promise.all([
+        prisma.notifikasi.findMany({
+          where,
+          skip,
+          take: parseInt(limit),
+          orderBy: { createdAt: 'desc' },
+        }),
+        prisma.notifikasi.count({ where }),
+      ]);
+
+      return {
+        notifications,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          totalPages: Math.ceil(total / parseInt(limit)),
+        },
+      };
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
     }
-
-    const [notifications, total] = await Promise.all([
-      prisma.notifikasi.findMany({
-        where,
-        skip,
-        take: parseInt(limit),
-        orderBy: { createdAt: 'desc' },
-      }),
-      prisma.notifikasi.count({ where }),
-    ]);
-
-    return {
-      notifications,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        totalPages: Math.ceil(total / parseInt(limit)),
-      },
-    };
   }
 
   async getUnreadCount(userId) {
-    const count = await prisma.notifikasi.count({
-      where: {
-        userId,
-        sudahBaca: false,
-      },
-    });
+    try {
+      // Validasi: Cek apakah user ada
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      });
 
-    return count;
+      if (!user) {
+        const error = new Error('User tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      const count = await prisma.notifikasi.count({
+        where: {
+          userId,
+          sudahBaca: false,
+        },
+      });
+
+      return count;
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
+    }
   }
 
   // ========== MARK AS READ ==========
 
   async markAsRead(notificationId, userId) {
-    const notification = await prisma.notifikasi.findFirst({
-      where: {
-        id: notificationId,
-        userId,
-      },
-    });
+    try {
+      // Validasi: Cek apakah notification ada dan milik user
+      const notification = await prisma.notifikasi.findFirst({
+        where: {
+          id: notificationId,
+          userId,
+        },
+      });
 
-    if (!notification) {
-      const error = new Error('Notifikasi tidak ditemukan');
-      error.statusCode = 404;
-      throw error;
+      if (!notification) {
+        const error = new Error('Notifikasi tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      // Update notification
+      const updated = await prisma.notifikasi.update({
+        where: { id: notificationId },
+        data: { sudahBaca: true },
+      });
+
+      return updated;
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
     }
-
-    const updated = await prisma.notifikasi.update({
-      where: { id: notificationId },
-      data: { sudahBaca: true },
-    });
-
-    return updated;
   }
 
   async markAllAsRead(userId) {
-    await prisma.notifikasi.updateMany({
-      where: {
-        userId,
-        sudahBaca: false,
-      },
-      data: { sudahBaca: true },
-    });
+    try {
+      // Validasi: Cek apakah user ada
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      });
 
-    return { message: 'Semua notifikasi telah dibaca' };
+      if (!user) {
+        const error = new Error('User tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      // Update all notifications
+      await prisma.notifikasi.updateMany({
+        where: {
+          userId,
+          sudahBaca: false,
+        },
+        data: { sudahBaca: true },
+      });
+
+      return { message: 'Semua notifikasi telah dibaca' };
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
+    }
   }
 
   // ========== DELETE NOTIFICATION ==========
 
   async deleteNotification(notificationId, userId) {
-    const notification = await prisma.notifikasi.findFirst({
-      where: {
-        id: notificationId,
-        userId,
-      },
-    });
+    try {
+      // Validasi: Cek apakah notification ada dan milik user
+      const notification = await prisma.notifikasi.findFirst({
+        where: {
+          id: notificationId,
+          userId,
+        },
+      });
 
-    if (!notification) {
-      const error = new Error('Notifikasi tidak ditemukan');
-      error.statusCode = 404;
-      throw error;
+      if (!notification) {
+        const error = new Error('Notifikasi tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      // Delete notification
+      await prisma.notifikasi.delete({
+        where: { id: notificationId },
+      });
+
+      return { message: 'Notifikasi berhasil dihapus' };
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
     }
-
-    await prisma.notifikasi.delete({
-      where: { id: notificationId },
-    });
-
-    return { message: 'Notifikasi berhasil dihapus' };
   }
 
   // ========== NOTIFICATION TRIGGERS ==========

@@ -1,14 +1,27 @@
 import { ExportService } from '../services/ExportService.js';
 import { ApiResponse } from '../utils/response.js';
+import { validateRequest } from '../utils/validators.js';
+import {
+  exportUsersQuerySchema,
+  exportUmkmQuerySchema,
+  exportEventSchema,
+  exportAssessmentSchema,
+  exportMarketplaceQuerySchema,
+  exportMarketplaceDetailedQuerySchema,
+} from '../schemas/export.schema.js';
 
 export class ExportController {
   constructor() {
     this.exportService = new ExportService();
   }
 
-  exportUsers = async (req, res, next) => {
+  exportUsers = async (req, res) => {
     try {
-      const { format = 'excel' } = req.query;
+      await validateRequest(req, {
+        schema: exportUsersQuerySchema,
+      });
+
+      const { format } = req.query;
 
       if (format === 'excel') {
         const buffer = await this.exportService.exportUsersToExcel();
@@ -25,15 +38,34 @@ export class ExportController {
         return res.send(buffer);
       }
 
-      return ApiResponse.error(res, 'Format tidak didukung', 400);
+      return ApiResponse.error(
+        res,
+        'Format tidak didukung. Hanya format excel yang tersedia.',
+        400,
+        [
+          {
+            field: 'format',
+            message: 'Format harus "excel"',
+          },
+        ]
+      );
     } catch (error) {
-      next(error);
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
     }
   };
 
-  exportUmkm = async (req, res, next) => {
+  exportUmkm = async (req, res) => {
     try {
-      const { format = 'excel' } = req.query;
+      await validateRequest(req, {
+        schema: exportUmkmQuerySchema,
+      });
+
+      const { format } = req.query;
 
       if (format === 'excel') {
         const buffer = await this.exportService.exportUmkmToExcel();
@@ -50,16 +82,35 @@ export class ExportController {
         return res.send(buffer);
       }
 
-      return ApiResponse.error(res, 'Format tidak didukung', 400);
+      return ApiResponse.error(
+        res,
+        'Format tidak didukung. Hanya format excel yang tersedia.',
+        400,
+        [
+          {
+            field: 'format',
+            message: 'Format harus "excel"',
+          },
+        ]
+      );
     } catch (error) {
-      next(error);
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
     }
   };
 
-  exportEvent = async (req, res, next) => {
+  exportEvent = async (req, res) => {
     try {
+      await validateRequest(req, {
+        schema: exportEventSchema,
+      });
+
       const { eventId } = req.params;
-      const { format = 'excel' } = req.query;
+      const { format } = req.query;
 
       if (format === 'excel') {
         const buffer = await this.exportService.exportEventToExcel(eventId);
@@ -88,16 +139,35 @@ export class ExportController {
         return res.send(buffer);
       }
 
-      return ApiResponse.error(res, 'Format tidak didukung', 400);
+      return ApiResponse.error(
+        res,
+        'Format tidak didukung. Hanya format excel dan pdf yang tersedia.',
+        400,
+        [
+          {
+            field: 'format',
+            message: 'Format harus "excel" atau "pdf"',
+          },
+        ]
+      );
     } catch (error) {
-      next(error);
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
     }
   };
 
-  exportAssessment = async (req, res, next) => {
+  exportAssessment = async (req, res) => {
     try {
+      await validateRequest(req, {
+        schema: exportAssessmentSchema,
+      });
+
       const { kategoriId } = req.params;
-      const { format = 'excel' } = req.query;
+      const { format } = req.query;
 
       if (format === 'excel') {
         const buffer =
@@ -115,14 +185,34 @@ export class ExportController {
         return res.send(buffer);
       }
 
-      return ApiResponse.error(res, 'Format tidak didukung', 400);
+      return ApiResponse.error(
+        res,
+        'Format tidak didukung. Hanya format excel yang tersedia.',
+        400,
+        [
+          {
+            field: 'format',
+            message: 'Format harus "excel"',
+          },
+        ]
+      );
     } catch (error) {
-      next(error);
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
     }
   };
-  exportMarketplace = async (req, res, next) => {
+
+  exportMarketplace = async (req, res) => {
     try {
-      const { format = 'excel', status, semester, tahunAjaran } = req.query;
+      await validateRequest(req, {
+        schema: exportMarketplaceQuerySchema,
+      });
+
+      const { format, status, semester, tahunAjaran } = req.query;
 
       if (format === 'excel') {
         const buffer = await this.exportService.exportAllMarketplaceToExcel({
@@ -143,14 +233,33 @@ export class ExportController {
         return res.send(buffer);
       }
 
-      return ApiResponse.error(res, 'Format tidak didukung', 400);
+      return ApiResponse.error(
+        res,
+        'Format tidak didukung. Hanya format excel yang tersedia.',
+        400,
+        [
+          {
+            field: 'format',
+            message: 'Format harus "excel"',
+          },
+        ]
+      );
     } catch (error) {
-      next(error);
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
     }
   };
 
-  exportMarketplaceDetailed = async (req, res, next) => {
+  exportMarketplaceDetailed = async (req, res) => {
     try {
+      await validateRequest(req, {
+        schema: exportMarketplaceDetailedQuerySchema,
+      });
+
       const { status, semester, tahunAjaran } = req.query;
 
       const buffer = await this.exportService.exportMarketplaceDetailed({
@@ -170,7 +279,12 @@ export class ExportController {
 
       return res.send(buffer);
     } catch (error) {
-      next(error);
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
     }
   };
 }

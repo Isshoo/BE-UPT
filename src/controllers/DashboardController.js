@@ -6,69 +6,98 @@ export class DashboardController {
     this.dashboardService = new DashboardService();
   }
 
-  getGeneralStats = async (req, res, next) => {
+  getGeneralStats = async (req, res) => {
     try {
       const stats = await this.dashboardService.getGeneralStats();
+
       return ApiResponse.success(res, stats, 'Statistik umum berhasil diambil');
     } catch (error) {
-      next(error);
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
     }
   };
 
-  getMarketplaceAnalytics = async (req, res, next) => {
+  getMarketplaceAnalytics = async (req, res) => {
     try {
       const analytics = await this.dashboardService.getMarketplaceAnalytics();
+
       return ApiResponse.success(
         res,
         analytics,
         'Analytics marketplace berhasil diambil'
       );
     } catch (error) {
-      next(error);
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
     }
   };
 
-  getUmkmAnalytics = async (req, res, next) => {
+  getUmkmAnalytics = async (req, res) => {
     try {
       const analytics = await this.dashboardService.getUmkmAnalytics();
+
       return ApiResponse.success(
         res,
         analytics,
         'Analytics UMKM berhasil diambil'
       );
     } catch (error) {
-      next(error);
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
     }
   };
 
-  getGrowthAnalytics = async (req, res, next) => {
+  getGrowthAnalytics = async (req, res) => {
     try {
       const analytics = await this.dashboardService.getGrowthAnalytics();
+
       return ApiResponse.success(
         res,
         analytics,
         'Analytics pertumbuhan berhasil diambil'
       );
     } catch (error) {
-      next(error);
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
     }
   };
 
-  getRecentActivities = async (req, res, next) => {
+  getRecentActivities = async (req, res) => {
     try {
       const activities = await this.dashboardService.getRecentActivities();
+
       return ApiResponse.success(
         res,
         activities,
         'Aktivitas terbaru berhasil diambil'
       );
     } catch (error) {
-      next(error);
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
     }
   };
 
-  // Combined endpoint for full dashboard data
-  getFullDashboard = async (req, res, next) => {
+  getFullDashboard = async (req, res) => {
     try {
       const [
         generalStats,
@@ -96,7 +125,12 @@ export class DashboardController {
         'Data dashboard berhasil diambil'
       );
     } catch (error) {
-      next(error);
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
     }
   };
 }

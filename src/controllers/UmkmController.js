@@ -1,166 +1,311 @@
 import { UmkmService } from '../services/UmkmService.js';
 import { ApiResponse } from '../utils/response.js';
+import { validateRequest } from '../utils/validators.js';
+import {
+  getUmkmsQuerySchema,
+  getUmkmByIdSchema,
+  createUmkmSchema,
+  updateUmkmSchema,
+  deleteUmkmSchema,
+  uploadStageFilesSchema,
+  requestValidationSchema,
+  validateStageSchema,
+} from '../schemas/umkm.schema.js';
 
 export class UmkmController {
   constructor() {
     this.umkmService = new UmkmService();
   }
 
-  // ========== UMKM CRUD ==========
-
-  createUmkm = async (req, res, next) => {
+  createUmkm = async (req, res) => {
     try {
+      await validateRequest(req, {
+        required: ['nama', 'kategori', 'deskripsi', 'namaPemilik', 'alamat', 'telepon'],
+        allowed: ['nama', 'kategori', 'deskripsi', 'namaPemilik', 'alamat', 'telepon'],
+        schema: createUmkmSchema,
+      });
+
       const umkm = await this.umkmService.createUmkm(req.body, req.user.id);
+
       return ApiResponse.success(res, umkm, 'UMKM berhasil didaftarkan', 201);
     } catch (error) {
-      next(error);
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
     }
   };
 
-  getUmkms = async (req, res, next) => {
+  getUmkms = async (req, res) => {
     try {
-      const result = await this.umkmService.getUmkms(req.query);
+      await validateRequest(req, {
+        schema: getUmkmsQuerySchema,
+      });
+
+      const { kategori, tahap, page, limit, search } = req.query;
+
+      const result = await this.umkmService.getUmkms({
+        kategori,
+        tahap,
+        page,
+        limit,
+        search,
+      });
+
       return ApiResponse.paginate(
         res,
         result.umkms,
         result.pagination.page,
         result.pagination.limit,
         result.pagination.total,
-        'Data UMKM berhasil diambil',
+        'Data UMKM berhasil diambil'
       );
     } catch (error) {
-      next(error);
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
     }
   };
 
-  getMyUmkms = async (req, res, next) => {
+  getMyUmkms = async (req, res) => {
     try {
+      await validateRequest(req, {
+        schema: getUmkmsQuerySchema,
+      });
+
+      const { kategori, tahap, page, limit, search } = req.query;
+
       const result = await this.umkmService.getUmkms({
-        ...req.query,
+        kategori,
+        tahap,
+        page,
+        limit,
+        search,
         userId: req.user.id,
       });
+
       return ApiResponse.paginate(
         res,
         result.umkms,
         result.pagination.page,
         result.pagination.limit,
         result.pagination.total,
-        'Data UMKM Anda berhasil diambil',
+        'Data UMKM Anda berhasil diambil'
       );
     } catch (error) {
-      next(error);
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
     }
   };
 
-  getUmkmById = async (req, res, next) => {
+  getUmkmById = async (req, res) => {
     try {
+      await validateRequest(req, {
+        schema: getUmkmByIdSchema,
+      });
+
+      const { id } = req.params;
+
       const umkm = await this.umkmService.getUmkmById(
-        req.params.id,
+        id,
         req.user?.id,
-        req.user?.role,
+        req.user?.role
       );
+
       return ApiResponse.success(res, umkm, 'Detail UMKM berhasil diambil');
     } catch (error) {
-      next(error);
-    }
-  };
-
-  updateUmkm = async (req, res, next) => {
-    try {
-      const umkm = await this.umkmService.updateUmkm(
-        req.params.id,
-        req.body,
-        req.user.id,
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
       );
-      return ApiResponse.success(res, umkm, 'UMKM berhasil diupdate');
-    } catch (error) {
-      next(error);
     }
   };
 
-  deleteUmkm = async (req, res, next) => {
+  updateUmkm = async (req, res) => {
     try {
-      const result = await this.umkmService.deleteUmkm(
-        req.params.id,
-        req.user.id,
-        req.user.role,
-      );
-      return ApiResponse.success(res, result, 'UMKM berhasil dihapus');
-    } catch (error) {
-      next(error);
-    }
-  };
+      await validateRequest(req, {
+        required: [],
+        allowed: ['nama', 'kategori', 'deskripsi', 'namaPemilik', 'alamat', 'telepon'],
+        schema: updateUmkmSchema,
+      });
 
-  // ========== STAGE MANAGEMENT ==========
+      const { id } = req.params;
+      const hasAnyField = Object.keys(req.body).length > 0;
 
-  uploadStageFiles = async (req, res, next) => {
-    try {
-      if (!req.files || req.files.length === 0) {
-        const error = new Error('File harus diupload');
-        error.statusCode = 400;
-        throw error;
+      if (!hasAnyField) {
+        return ApiResponse.error(
+          res,
+          'Minimal satu field harus diisi untuk update UMKM',
+          400,
+          [
+            {
+              field: 'body',
+              message: 'Minimal satu field harus diisi',
+            },
+          ]
+        );
       }
 
-      // Extract file URLs from Cloudinary upload
+      const umkm = await this.umkmService.updateUmkm(id, req.body, req.user.id);
+
+      return ApiResponse.success(res, umkm, 'UMKM berhasil diupdate');
+    } catch (error) {
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
+    }
+  };
+
+  deleteUmkm = async (req, res) => {
+    try {
+      await validateRequest(req, {
+        schema: deleteUmkmSchema,
+      });
+
+      const { id } = req.params;
+
+      const result = await this.umkmService.deleteUmkm(
+        id,
+        req.user.id,
+        req.user.role
+      );
+
+      return ApiResponse.success(res, result, 'UMKM berhasil dihapus');
+    } catch (error) {
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
+    }
+  };
+
+  uploadStageFiles = async (req, res) => {
+    try {
+      await validateRequest(req, {
+        schema: uploadStageFilesSchema,
+      });
+
+      if (!req.files || req.files.length === 0) {
+        return ApiResponse.error(
+          res,
+          'File harus diupload',
+          400,
+          [
+            {
+              field: 'files',
+              message: 'Minimal satu file harus diupload',
+            },
+          ]
+        );
+      }
+
+      const { umkmId, tahap } = req.params;
       const fileUrls = req.files.map((file) => file.path);
 
       const stage = await this.umkmService.uploadStageFiles(
-        req.params.umkmId,
-        req.params.tahap,
+        umkmId,
+        tahap,
         fileUrls,
-        req.user.id,
+        req.user.id
       );
 
       return ApiResponse.success(res, stage, 'File berhasil diupload');
     } catch (error) {
-      next(error);
-    }
-  };
-
-  requestValidation = async (req, res, next) => {
-    try {
-      const stage = await this.umkmService.requestValidation(
-        req.params.umkmId,
-        req.params.tahap,
-        req.user.id,
-      );
-      return ApiResponse.success(
+      return ApiResponse.error(
         res,
-        stage,
-        'Request validasi berhasil dikirim',
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
       );
-    } catch (error) {
-      next(error);
     }
   };
 
-  validateStage = async (req, res, next) => {
+  requestValidation = async (req, res) => {
     try {
-      const { isApproved, catatan } = req.body;
-      const umkm = await this.umkmService.validateStage(
-        req.params.umkmId,
-        req.params.tahap,
-        isApproved,
-        catatan,
+      await validateRequest(req, {
+        schema: requestValidationSchema,
+      });
+
+      const { umkmId, tahap } = req.params;
+
+      const stage = await this.umkmService.requestValidation(
+        umkmId,
+        tahap,
+        req.user.id
       );
+
+      return ApiResponse.success(res, stage, 'Request validasi berhasil dikirim');
+    } catch (error) {
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
+    }
+  };
+
+  validateStage = async (req, res) => {
+    try {
+      await validateRequest(req, {
+        required: ['isApproved'],
+        allowed: ['isApproved', 'catatan'],
+        schema: validateStageSchema,
+      });
+
+      const { umkmId, tahap } = req.params;
+      const { isApproved, catatan } = req.body;
+
+      const umkm = await this.umkmService.validateStage(
+        umkmId,
+        tahap,
+        isApproved,
+        catatan
+      );
+
       return ApiResponse.success(
         res,
         umkm,
-        isApproved ? 'Tahap berhasil divalidasi' : 'Tahap ditolak',
+        isApproved ? 'Tahap berhasil divalidasi' : 'Tahap ditolak'
       );
     } catch (error) {
-      next(error);
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
     }
   };
 
-  // ========== STATISTICS ==========
-
-  getStatistics = async (req, res, next) => {
+  getStatistics = async (req, res) => {
     try {
       const stats = await this.umkmService.getStatistics();
+
       return ApiResponse.success(res, stats, 'Statistik UMKM berhasil diambil');
     } catch (error) {
-      next(error);
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
     }
   };
 }
