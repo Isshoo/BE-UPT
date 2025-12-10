@@ -23,7 +23,10 @@ export class AssessmentService {
       const { nama, deskripsi, penilaiIds, kriteria } = data;
 
       // Validasi: Total bobot harus 100%
-      const totalBobot = kriteria.reduce((sum, k) => sum + parseInt(k.bobot), 0);
+      const totalBobot = kriteria.reduce(
+        (sum, k) => sum + parseInt(k.bobot),
+        0
+      );
       if (totalBobot !== 100) {
         const error = new Error('Total bobot kriteria harus 100%');
         error.statusCode = 400;
@@ -167,7 +170,8 @@ export class AssessmentService {
       // Prepare update data (hanya field yang diisi)
       const updateData = {};
       if (nama !== undefined) updateData.nama = nama.trim();
-      if (deskripsi !== undefined) updateData.deskripsi = deskripsi?.trim() || null;
+      if (deskripsi !== undefined)
+        updateData.deskripsi = deskripsi?.trim() || null;
       if (penilaiIds && penilaiIds.length > 0) {
         updateData.penilai = {
           set: penilaiIds.map((id) => ({ id })),
@@ -574,6 +578,8 @@ export class AssessmentService {
               email: true,
             },
           },
+          prodi: true,
+          fakultas: true,
         },
         orderBy: {
           event: {
