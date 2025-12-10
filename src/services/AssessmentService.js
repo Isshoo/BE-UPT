@@ -439,6 +439,24 @@ export class AssessmentService {
         throw error;
       }
 
+      // Validasi: Event harus berstatus SELESAI
+      if (kategori.event.status !== 'SELESAI') {
+        const error = new Error(
+          'Pemenang hanya dapat di-set saat event sudah SELESAI'
+        );
+        error.statusCode = 400;
+        throw error;
+      }
+
+      // Validasi: Pemenang tidak bisa diubah jika sudah di-set
+      if (kategori.pemenangId) {
+        const error = new Error(
+          'Pemenang sudah ditetapkan dan tidak dapat diubah'
+        );
+        error.statusCode = 400;
+        throw error;
+      }
+
       // Validasi: Cek apakah business ada dalam event ini
       const business = await prisma.usaha.findUnique({
         where: { id: usahaId },
@@ -471,6 +489,155 @@ export class AssessmentService {
 
       return updatedKategori;
     } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
+    }
+  }
+
+  // Auto-set winners for all categories when event status changes to SELESAI
+  async autoSetWinnersForEvent(eventId) {
+    try {
+      // Get all assessment categories for this event
+      const kategoris = await prisma.kategoriPenilaian.findMany({
+        where: { eventId },
+        include: {
+          kriteria: true,
+          event: true,
+        },
+      });
+
+      const results = [];
+
+      for (const kategori of kategoris) {
+        // Skip if winner already set
+        if (kategori.pemenangId) {
+          results.push({
+            kategoriId: kategori.id,
+            kategoriNama: kategori.nama,
+            status: 'already_set',
+            message: 'Pemenang sudah ditetapkan sebelumnya',
+          });
+          continue;
+        }
+
+        // Get all approved mahasiswa businesses in this event
+        const businesses = await prisma.usaha.findMany({
+          where: {
+            eventId,
+            disetujui: true,
+            tipeUsaha: 'MAHASISWA',
+          },
+          include: {
+            pemilik: { select: { nama: true } },
+          },
+        });
+
+        if (businesses.length === 0) {
+          results.push({
+            kategoriId: kategori.id,
+            kategoriNama: kategori.nama,
+            status: 'no_participants',
+            message: 'Tidak ada peserta yang memenuhi syarat',
+          });
+          continue;
+        }
+
+        // Calculate scores for each business
+        const businessScores = await Promise.all(
+          businesses.map(async (business) => {
+            const scores = await prisma.nilaiPenilaian.findMany({
+              where: {
+                usahaId: business.id,
+                kategoriId: kategori.id,
+              },
+            });
+
+            let totalScore = 0;
+            kategori.kriteria.forEach((kriteria) => {
+              const score = scores.find((s) => s.kriteriaId === kriteria.id);
+              const nilai = score?.nilai || 0;
+              totalScore += (nilai * kriteria.bobot) / 100;
+            });
+
+            return {
+              usahaId: business.id,
+              namaProduk: business.namaProduk,
+              pemilikNama: business.pemilik.nama,
+              pemilikId: business.pemilikId,
+              totalScore: Math.round(totalScore * 100) / 100,
+            };
+          })
+        );
+
+        // Sort by score descending
+        businessScores.sort((a, b) => b.totalScore - a.totalScore);
+
+        // Check if there are any scored businesses
+        if (businessScores.length === 0 || businessScores[0].totalScore === 0) {
+          results.push({
+            kategoriId: kategori.id,
+            kategoriNama: kategori.nama,
+            status: 'no_scores',
+            message: 'Belum ada penilaian untuk kategori ini',
+          });
+          continue;
+        }
+
+        const highestScore = businessScores[0].totalScore;
+
+        // Check for tie (2+ businesses with same highest score)
+        const topScorers = businessScores.filter(
+          (b) => b.totalScore === highestScore
+        );
+
+        if (topScorers.length > 1) {
+          // Tie detected - skip auto-set, allow manual selection
+          results.push({
+            kategoriId: kategori.id,
+            kategoriNama: kategori.nama,
+            status: 'tie',
+            message: `Terdapat ${topScorers.length} peserta dengan nilai tertinggi yang sama (${highestScore}). Silakan pilih pemenang secara manual.`,
+            tiedBusinesses: topScorers.map((b) => ({
+              usahaId: b.usahaId,
+              namaProduk: b.namaProduk,
+              totalScore: b.totalScore,
+            })),
+          });
+          continue;
+        }
+
+        // Single winner - auto-set
+        const winner = businessScores[0];
+        await prisma.kategoriPenilaian.update({
+          where: { id: kategori.id },
+          data: { pemenangId: winner.usahaId },
+        });
+
+        // Notify winner
+        await this.notificationService.createNotification({
+          userId: winner.pemilikId,
+          judul: '🎉 Selamat! Anda Menjadi Pemenang!',
+          pesan: `Usaha "${winner.namaProduk}" memenangkan kategori "${kategori.nama}" di event "${kategori.event.nama}"`,
+          link: `/marketplace/${eventId}`,
+        });
+
+        results.push({
+          kategoriId: kategori.id,
+          kategoriNama: kategori.nama,
+          status: 'auto_set',
+          message: `Pemenang otomatis ditetapkan: ${winner.namaProduk} (Nilai: ${winner.totalScore})`,
+          winner: {
+            usahaId: winner.usahaId,
+            namaProduk: winner.namaProduk,
+            totalScore: winner.totalScore,
+          },
+        });
+      }
+
+      return results;
+    } catch (error) {
+      console.error('Error in autoSetWinnersForEvent:', error);
       const err = new Error(error.message);
       err.statusCode = error.statusCode || 500;
       throw err;

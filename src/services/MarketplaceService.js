@@ -1,10 +1,12 @@
 /* eslint-disable indent */
 import { prisma } from '../config/index.js';
 import { NotificationService } from './NotificationService.js';
+import { AssessmentService } from './AssessmentService.js';
 
 export class MarketplaceService {
   constructor() {
     this.notificationService = new NotificationService();
+    this.assessmentService = new AssessmentService();
   }
   // ========== EVENT CRUD ==========
 
@@ -325,6 +327,18 @@ export class MarketplaceService {
           event.id,
           status
         );
+
+        // Auto-set winners when status changes to SELESAI
+        if (status === 'SELESAI') {
+          try {
+            const winnerResults =
+              await this.assessmentService.autoSetWinnersForEvent(eventId);
+            console.log('Auto-set winners results:', winnerResults);
+          } catch (autoSetError) {
+            console.error('Error auto-setting winners:', autoSetError);
+            // Don't throw - the event update should still succeed
+          }
+        }
       }
 
       return event;
