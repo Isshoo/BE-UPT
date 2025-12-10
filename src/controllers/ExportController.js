@@ -20,7 +20,7 @@ export class ExportController {
         schema: exportUsersQuerySchema,
       });
 
-      const { format } = req.query;
+      const { format = 'excel' } = req.query;
 
       if (format === 'excel') {
         const buffer = await this.exportService.exportUsersToExcel();
@@ -37,16 +37,23 @@ export class ExportController {
         return res.send(buffer);
       }
 
+      if (format === 'pdf') {
+        const buffer = await this.exportService.exportUsersToPDF();
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader(
+          'Content-Disposition',
+          `attachment; filename=data-pengguna-${Date.now()}.pdf`
+        );
+
+        return res.send(buffer);
+      }
+
       return ApiResponse.error(
         res,
-        'Format tidak didukung. Hanya format excel yang tersedia.',
+        'Format tidak didukung. Format yang tersedia: excel, pdf.',
         400,
-        [
-          {
-            field: 'format',
-            message: 'Format harus "excel"',
-          },
-        ]
+        [{ field: 'format', message: 'Format harus "excel" atau "pdf"' }]
       );
     } catch (error) {
       return ApiResponse.error(
@@ -65,7 +72,7 @@ export class ExportController {
       });
 
       const { eventId } = req.params;
-      const { format } = req.query;
+      const { format = 'excel' } = req.query;
 
       if (format === 'excel') {
         const buffer = await this.exportService.exportEventToExcel(eventId);
@@ -96,14 +103,9 @@ export class ExportController {
 
       return ApiResponse.error(
         res,
-        'Format tidak didukung. Hanya format excel dan pdf yang tersedia.',
+        'Format tidak didukung. Format yang tersedia: excel, pdf.',
         400,
-        [
-          {
-            field: 'format',
-            message: 'Format harus "excel" atau "pdf"',
-          },
-        ]
+        [{ field: 'format', message: 'Format harus "excel" atau "pdf"' }]
       );
     } catch (error) {
       return ApiResponse.error(
@@ -122,7 +124,7 @@ export class ExportController {
       });
 
       const { kategoriId } = req.params;
-      const { format } = req.query;
+      const { format = 'excel' } = req.query;
 
       if (format === 'excel') {
         const buffer =
@@ -140,16 +142,24 @@ export class ExportController {
         return res.send(buffer);
       }
 
+      if (format === 'pdf') {
+        const buffer =
+          await this.exportService.exportAssessmentToPDF(kategoriId);
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader(
+          'Content-Disposition',
+          `attachment; filename=hasil-penilaian-${kategoriId}-${Date.now()}.pdf`
+        );
+
+        return res.send(buffer);
+      }
+
       return ApiResponse.error(
         res,
-        'Format tidak didukung. Hanya format excel yang tersedia.',
+        'Format tidak didukung. Format yang tersedia: excel, pdf.',
         400,
-        [
-          {
-            field: 'format',
-            message: 'Format harus "excel"',
-          },
-        ]
+        [{ field: 'format', message: 'Format harus "excel" atau "pdf"' }]
       );
     } catch (error) {
       return ApiResponse.error(
@@ -167,14 +177,12 @@ export class ExportController {
         schema: exportMarketplaceQuerySchema,
       });
 
-      const { format, status, semester, tahunAjaran } = req.query;
+      const { format = 'excel', status, semester, tahunAjaran } = req.query;
+      const filters = { status, semester, tahunAjaran };
 
       if (format === 'excel') {
-        const buffer = await this.exportService.exportAllMarketplaceToExcel({
-          status,
-          semester,
-          tahunAjaran,
-        });
+        const buffer =
+          await this.exportService.exportAllMarketplaceToExcel(filters);
 
         res.setHeader(
           'Content-Type',
@@ -188,16 +196,23 @@ export class ExportController {
         return res.send(buffer);
       }
 
+      if (format === 'pdf') {
+        const buffer = await this.exportService.exportMarketplaceToPDF(filters);
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader(
+          'Content-Disposition',
+          `attachment; filename=data-marketplace-${Date.now()}.pdf`
+        );
+
+        return res.send(buffer);
+      }
+
       return ApiResponse.error(
         res,
-        'Format tidak didukung. Hanya format excel yang tersedia.',
+        'Format tidak didukung. Format yang tersedia: excel, pdf.',
         400,
-        [
-          {
-            field: 'format',
-            message: 'Format harus "excel"',
-          },
-        ]
+        [{ field: 'format', message: 'Format harus "excel" atau "pdf"' }]
       );
     } catch (error) {
       return ApiResponse.error(
@@ -215,24 +230,44 @@ export class ExportController {
         schema: exportMarketplaceDetailedQuerySchema,
       });
 
-      const { status, semester, tahunAjaran } = req.query;
+      const { format = 'excel', status, semester, tahunAjaran } = req.query;
+      const filters = { status, semester, tahunAjaran };
 
-      const buffer = await this.exportService.exportMarketplaceDetailed({
-        status,
-        semester,
-        tahunAjaran,
-      });
+      if (format === 'excel') {
+        const buffer =
+          await this.exportService.exportMarketplaceDetailed(filters);
 
-      res.setHeader(
-        'Content-Type',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        res.setHeader(
+          'Content-Type',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        );
+        res.setHeader(
+          'Content-Disposition',
+          `attachment; filename=data-marketplace-detail-${Date.now()}.xlsx`
+        );
+
+        return res.send(buffer);
+      }
+
+      if (format === 'pdf') {
+        const buffer =
+          await this.exportService.exportMarketplaceDetailedToPDF(filters);
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader(
+          'Content-Disposition',
+          `attachment; filename=data-marketplace-detail-${Date.now()}.pdf`
+        );
+
+        return res.send(buffer);
+      }
+
+      return ApiResponse.error(
+        res,
+        'Format tidak didukung. Format yang tersedia: excel, pdf.',
+        400,
+        [{ field: 'format', message: 'Format harus "excel" atau "pdf"' }]
       );
-      res.setHeader(
-        'Content-Disposition',
-        `attachment; filename=data-marketplace-detail-${Date.now()}.xlsx`
-      );
-
-      return res.send(buffer);
     } catch (error) {
       return ApiResponse.error(
         res,

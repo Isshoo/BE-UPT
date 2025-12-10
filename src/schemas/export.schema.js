@@ -2,15 +2,18 @@
  * Export Validation Schemas
  * Menggunakan Zod untuk validasi input yang type-safe
  */
-import { string, z } from 'zod';
+import { z } from 'zod';
 
 // Status Event enum
 const EventStatusEnum = z.enum(['DRAFT', 'TERBUKA', 'BERLANGSUNG', 'SELESAI']);
 
+// Export format enum - support both excel and pdf
+const ExportFormatEnum = z.enum(['excel', 'pdf']).default('excel');
+
 // Export Users Query
 export const exportUsersQuerySchema = z.object({
   query: z.object({
-    format: z.enum(['excel']).default('excel'),
+    format: ExportFormatEnum,
   }),
 });
 
@@ -20,7 +23,7 @@ export const exportEventSchema = z.object({
     eventId: z.string().min(1, 'ID event harus diisi'),
   }),
   query: z.object({
-    format: z.enum(['excel', 'pdf']).default('excel'),
+    format: ExportFormatEnum,
   }),
 });
 
@@ -30,14 +33,14 @@ export const exportAssessmentSchema = z.object({
     kategoriId: z.string().min(1, 'ID kategori harus diisi'),
   }),
   query: z.object({
-    format: z.enum(['excel']).default('excel'),
+    format: ExportFormatEnum,
   }),
 });
 
 // Export Marketplace Query
 export const exportMarketplaceQuerySchema = z.object({
   query: z.object({
-    format: z.enum(['excel']).default('excel'),
+    format: ExportFormatEnum,
     status: z.string().optional(),
     semester: z.string().optional(),
     tahunAjaran: z.string().optional(),
@@ -47,6 +50,7 @@ export const exportMarketplaceQuerySchema = z.object({
 // Export Marketplace Detailed Query
 export const exportMarketplaceDetailedQuerySchema = z.object({
   query: z.object({
+    format: ExportFormatEnum,
     status: z.string().optional(),
     semester: z.string().optional(),
     tahunAjaran: z.string().optional(),
