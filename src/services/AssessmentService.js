@@ -736,6 +736,7 @@ export class AssessmentService {
               nama: true,
               status: true,
               tanggalPelaksanaan: true,
+              tahunAjaran: true,
             },
           },
           pemilik: {
