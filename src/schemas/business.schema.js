@@ -38,8 +38,8 @@ export const registerBusinessSchema = z.object({
       )
       .optional(),
     ketuaId: z.string().optional(),
-    fakultas: z.string().max(255).trim().optional(),
-    prodi: z.string().max(255).trim().optional(),
+    fakultasId: z.string().optional(),
+    prodiId: z.string().optional(),
     pembimbingId: z.string().optional(),
     mataKuliah: z.string().max(255).trim().optional(),
     // Untuk UMKM_LUAR

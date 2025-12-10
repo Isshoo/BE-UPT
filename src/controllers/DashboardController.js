@@ -40,25 +40,6 @@ export class DashboardController {
     }
   };
 
-  getUmkmAnalytics = async (req, res) => {
-    try {
-      const analytics = await this.dashboardService.getUmkmAnalytics();
-
-      return ApiResponse.success(
-        res,
-        analytics,
-        'Analytics UMKM berhasil diambil'
-      );
-    } catch (error) {
-      return ApiResponse.error(
-        res,
-        error.message || 'Terjadi kesalahan',
-        error.statusCode || 500,
-        error.errors || null
-      );
-    }
-  };
-
   getGrowthAnalytics = async (req, res) => {
     try {
       const analytics = await this.dashboardService.getGrowthAnalytics();
@@ -102,13 +83,11 @@ export class DashboardController {
       const [
         generalStats,
         marketplaceAnalytics,
-        umkmAnalytics,
         growthAnalytics,
         recentActivities,
       ] = await Promise.all([
         this.dashboardService.getGeneralStats(),
         this.dashboardService.getMarketplaceAnalytics(),
-        this.dashboardService.getUmkmAnalytics(),
         this.dashboardService.getGrowthAnalytics(),
         this.dashboardService.getRecentActivities(),
       ]);
@@ -118,7 +97,6 @@ export class DashboardController {
         {
           generalStats,
           marketplaceAnalytics,
-          umkmAnalytics,
           growthAnalytics,
           recentActivities,
         },

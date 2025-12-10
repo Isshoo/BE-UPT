@@ -16,7 +16,6 @@ enum Role {
 enum StatusEvent {
   DRAFT
   TERBUKA
-  PERSIAPAN
   BERLANGSUNG
   SELESAI
 }
@@ -26,27 +25,55 @@ enum TipeUsaha {
   UMKM_LUAR
 }
 
-enum StatusTahapUmkm {
-  BELUM_DIMULAI
-  SEDANG_PROSES
-  MENUNGGU_VALIDASI
-  SELESAI
-}
+// ==================== MASTER DATA ====================
 
-model User {
+model Fakultas {
   id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  nama      String
-  role      Role     @default(USER)
-  fakultas  String?
-  prodi     String?
+  kode      String   @unique // Contoh: "Teknik", "FEB"
+  nama      String            // Contoh: "Teknik", "Ekonomi dan Bisnis"
   createdAt DateTime @default(now()) @db.Timestamptz
   updatedAt DateTime @updatedAt      @db.Timestamptz
 
   // Relations
+  prodi Prodi[]
+  users User[]
+  usaha Usaha[]
+
+  @@map("fakultas")
+}
+
+model Prodi {
+  id         String   @id @default(cuid())
+  nama       String            // Contoh: "Teknik Informatika"
+  fakultasId String
+  createdAt  DateTime @default(now()) @db.Timestamptz
+  updatedAt  DateTime @updatedAt      @db.Timestamptz
+
+  fakultas Fakultas @relation(fields: [fakultasId], references: [id], onDelete: Cascade)
+  users    User[]
+  usaha    Usaha[]
+
+  @@unique([nama, fakultasId])
+  @@map("prodi")
+}
+
+// ==================== USER ====================
+
+model User {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  password   String
+  nama       String
+  role       Role     @default(USER)
+  fakultasId String?
+  prodiId    String?
+  createdAt  DateTime @default(now()) @db.Timestamptz
+  updatedAt  DateTime @updatedAt      @db.Timestamptz
+
+  // Relations
+  fakultas             Fakultas?            @relation(fields: [fakultasId], references: [id])
+  prodi                Prodi?               @relation(fields: [prodiId], references: [id])
   usaha                Usaha[]
-  umkm                 Umkm[]
   riwayatMarketplace   RiwayatMarketplace[]
   notifikasi           Notifikasi[]
   
@@ -58,6 +85,8 @@ model User {
   @@map("users")
 }
 
+// ==================== EVENT MARKETPLACE ====================
+
 model EventMarketplace {
   id                 String       @id @default(cuid())
   nama               String
@@ -66,10 +95,9 @@ model EventMarketplace {
   tahunAjaran        String
   lokasi             String
   tanggalPelaksanaan DateTime     @db.Timestamptz
-  mulaiPendaftaran   DateTime     @db.Timestamptz
-  akhirPendaftaran   DateTime     @db.Timestamptz
   kuotaPeserta       Int
   status             StatusEvent  @default(DRAFT)
+  gambarCover        String?
   gambarLayout       String?
   terkunci           Boolean      @default(false)
   createdAt          DateTime     @default(now()) @db.Timestamptz
@@ -95,6 +123,8 @@ model Sponsor {
 
   @@map("sponsor")
 }
+
+// ==================== PENILAIAN ====================
 
 model KategoriPenilaian {
   id          String   @id @default(cuid())
@@ -127,44 +157,6 @@ model KriteriaPenilaian {
   @@map("kriteria_penilaian")
 }
 
-model Usaha {
-  id             String      @id @default(cuid())
-  namaProduk     String
-  kategori       String
-  deskripsi      String      @db.Text
-  tipeUsaha      TipeUsaha
-  eventId        String
-  pemilikId      String
-  
-  // Untuk Mahasiswa
-  anggota        Json? // Array of {nama, nim}
-  ketuaId        String? // NIM ketua
-  fakultas       String?
-  prodi          String?
-  pembimbingId   String?
-  mataKuliah     String?
-  
-  // Untuk UMKM Luar
-  namaPemilik    String?
-  alamat         String?
-  
-  telepon        String
-  nomorBooth     String?
-  disetujui      Boolean      @default(false)
-  tanggalDisetujui DateTime?  @db.Timestamptz
-  createdAt      DateTime     @default(now()) @db.Timestamptz
-  updatedAt      DateTime     @updatedAt      @db.Timestamptz
-
-  pemilik            User                  @relation(fields: [pemilikId], references: [id])
-  event              EventMarketplace      @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  pembimbing         User?                 @relation("DosenPembimbing", fields: [pembimbingId], references: [id])
-  nilai              NilaiPenilaian[]
-  kategoriDimenangkan KategoriPenilaian[] @relation("PemenangKategori")
-  riwayatMarketplace RiwayatMarketplace[]
-
-  @@map("usaha")
-}
-
 model NilaiPenilaian {
   id         String   @id @default(cuid())
   nilai      Int // 0-100
@@ -184,48 +176,55 @@ model NilaiPenilaian {
   @@map("nilai_penilaian")
 }
 
-model Umkm {
-  id           String   @id @default(cuid())
-  nama         String
-  kategori     String
-  deskripsi    String   @db.Text
-  namaPemilik  String
-  alamat       String
-  telepon      String
-  userId       String
-  tahapSaatIni Int      @default(1) // 1-4
-  createdAt    DateTime @default(now()) @db.Timestamptz
-  updatedAt    DateTime @updatedAt      @db.Timestamptz
+// ==================== USAHA ====================
 
-  user   User        @relation(fields: [userId], references: [id])
-  tahap  TahapUmkm[]
+model Usaha {
+  id             String      @id @default(cuid())
+  namaProduk     String
+  kategori       String
+  deskripsi      String      @db.Text
+  tipeUsaha      TipeUsaha
+  eventId        String
+  pemilikId      String
+  
+  // Untuk Mahasiswa
+  anggota        Json? // Array of {nama, nim}
+  ketuaId        String? // NIM ketua
+  fakultasId     String?
+  prodiId        String?
+  pembimbingId   String?
+  mataKuliah     String?
+  
+  // Untuk UMKM Luar
+  namaPemilik    String?
+  alamat         String?
+  
+  telepon        String
+  nomorBooth     String?
+  disetujui      Boolean      @default(false)
+  tanggalDisetujui DateTime?  @db.Timestamptz
+  createdAt      DateTime     @default(now()) @db.Timestamptz
+  updatedAt      DateTime     @updatedAt      @db.Timestamptz
 
-  @@map("umkm")
+  pemilik            User                  @relation(fields: [pemilikId], references: [id])
+  event              EventMarketplace      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  fakultas           Fakultas?             @relation(fields: [fakultasId], references: [id])
+  prodi              Prodi?                @relation(fields: [prodiId], references: [id])
+  pembimbing         User?                 @relation("DosenPembimbing", fields: [pembimbingId], references: [id])
+  nilai              NilaiPenilaian[]
+  kategoriDimenangkan KategoriPenilaian[] @relation("PemenangKategori")
+  riwayatMarketplace RiwayatMarketplace[]
+
+  @@map("usaha")
 }
 
-model TahapUmkm {
-  id              String           @id @default(cuid())
-  umkmId          String
-  tahap           Int // 1: Ide Bisnis, 2: Produk, 3: Legalitas, 4: Marketing
-  status          StatusTahapUmkm  @default(BELUM_DIMULAI)
-  file            Json? // Array of file URLs
-  catatan         String?          @db.Text
-  tanggalSubmit   DateTime?        @db.Timestamptz
-  tanggalValidasi DateTime?        @db.Timestamptz
-  createdAt       DateTime         @default(now()) @db.Timestamptz
-  updatedAt       DateTime         @updatedAt      @db.Timestamptz
-
-  umkm Umkm @relation(fields: [umkmId], references: [id], onDelete: Cascade)
-
-  @@unique([umkmId, tahap])
-  @@map("tahap_umkm")
-}
+// ==================== RIWAYAT & NOTIFIKASI ====================
 
 model RiwayatMarketplace {
   id        String   @id @default(cuid())
   userId    String
   eventId   String
-  usahaId   String   // ← Field sudah ada
+  usahaId   String
   createdAt DateTime @default(now()) @db.Timestamptz
 
   user  User             @relation(fields: [userId], references: [id])

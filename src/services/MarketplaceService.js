@@ -17,8 +17,6 @@ export class MarketplaceService {
         tahunAjaran,
         lokasi,
         tanggalPelaksanaan,
-        mulaiPendaftaran,
-        akhirPendaftaran,
         kuotaPeserta,
         sponsor,
         kategoriPenilaian,
@@ -26,24 +24,6 @@ export class MarketplaceService {
 
       // Validasi: Validasi tanggal
       const eventDate = new Date(tanggalPelaksanaan);
-      const regStart = new Date(mulaiPendaftaran);
-      const regEnd = new Date(akhirPendaftaran);
-
-      if (regStart >= regEnd) {
-        const error = new Error(
-          'Tanggal mulai pendaftaran harus sebelum tanggal akhir'
-        );
-        error.statusCode = 400;
-        throw error;
-      }
-
-      if (regEnd >= eventDate) {
-        const error = new Error(
-          'Tanggal akhir pendaftaran harus sebelum tanggal pelaksanaan'
-        );
-        error.statusCode = 400;
-        throw error;
-      }
 
       // validasi nama event tidak boleh sama dengan nama event lain
       const existingEvent = await prisma.eventMarketplace.findFirst({
@@ -64,8 +44,6 @@ export class MarketplaceService {
           tahunAjaran: tahunAjaran.trim(),
           lokasi: lokasi.trim(),
           tanggalPelaksanaan: eventDate,
-          mulaiPendaftaran: regStart,
-          akhirPendaftaran: regEnd,
           kuotaPeserta: parseInt(kuotaPeserta),
           status: 'TERBUKA',
           sponsor: sponsor
@@ -295,8 +273,6 @@ export class MarketplaceService {
         tahunAjaran,
         lokasi,
         tanggalPelaksanaan,
-        mulaiPendaftaran,
-        akhirPendaftaran,
         kuotaPeserta,
         status,
       } = data;
@@ -325,10 +301,6 @@ export class MarketplaceService {
       if (lokasi !== undefined) updateData.lokasi = lokasi.trim();
       if (tanggalPelaksanaan !== undefined)
         updateData.tanggalPelaksanaan = new Date(tanggalPelaksanaan);
-      if (mulaiPendaftaran !== undefined)
-        updateData.mulaiPendaftaran = new Date(mulaiPendaftaran);
-      if (akhirPendaftaran !== undefined)
-        updateData.akhirPendaftaran = new Date(akhirPendaftaran);
       if (kuotaPeserta !== undefined)
         updateData.kuotaPeserta = parseInt(kuotaPeserta);
       if (status !== undefined) updateData.status = status;
@@ -490,6 +462,33 @@ export class MarketplaceService {
       const updatedEvent = await prisma.eventMarketplace.update({
         where: { id: eventId },
         data: { gambarLayout: layoutUrl },
+      });
+
+      return updatedEvent;
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
+    }
+  }
+
+  async uploadCover(eventId, coverUrl) {
+    try {
+      // Validasi: Cek apakah event ada
+      const event = await prisma.eventMarketplace.findUnique({
+        where: { id: eventId },
+      });
+
+      if (!event) {
+        const error = new Error('Event tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      // Update cover
+      const updatedEvent = await prisma.eventMarketplace.update({
+        where: { id: eventId },
+        data: { gambarCover: coverUrl },
       });
 
       return updatedEvent;

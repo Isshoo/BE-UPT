@@ -10,11 +10,9 @@ const exportController = new ExportController();
 router.use(AuthMiddleware.authenticate);
 router.use(AuthMiddleware.authorize('ADMIN'));
 router.use(exportLimiter);
+
 // Export users
 router.get('/users', exportController.exportUsers);
-
-// Export UMKM
-router.get('/umkm', exportController.exportUmkm);
 
 // Export event
 router.get('/event/:eventId', exportController.exportEvent);

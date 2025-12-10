@@ -5,23 +5,10 @@
 import { string, z } from 'zod';
 
 // Status Event enum
-const StatusEventEnum = z.enum([
-  'DRAFT',
-  'TERBUKA',
-  'PERSIAPAN',
-  'BERLANGSUNG',
-  'SELESAI',
-]);
+const EventStatusEnum = z.enum(['DRAFT', 'TERBUKA', 'BERLANGSUNG', 'SELESAI']);
 
 // Export Users Query
 export const exportUsersQuerySchema = z.object({
-  query: z.object({
-    format: z.enum(['excel']).default('excel'),
-  }),
-});
-
-// Export UMKM Query
-export const exportUmkmQuerySchema = z.object({
   query: z.object({
     format: z.enum(['excel']).default('excel'),
   }),

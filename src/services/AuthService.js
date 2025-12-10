@@ -5,7 +5,7 @@ import { generateToken } from '../config/jwt.js';
 export class AuthService {
   async register(data) {
     try {
-      const { email, password, nama } = data;
+      const { email, password, nama, role, fakultasId, prodiId } = data;
 
       // Validasi: Cek apakah email atau nama sudah terdaftar
       const existingEmail = await prisma.user.findUnique({
@@ -41,15 +41,28 @@ export class AuthService {
           email: email.toLowerCase().trim(),
           password: hashedPassword,
           nama: nama.trim(),
-          role: 'USER',
+          role: role || 'USER',
+          fakultasId: fakultasId || null,
+          prodiId: prodiId || null,
         },
         select: {
           id: true,
           email: true,
           nama: true,
           role: true,
-          fakultas: true,
-          prodi: true,
+          fakultas: {
+            select: {
+              id: true,
+              kode: true,
+              nama: true,
+            },
+          },
+          prodi: {
+            select: {
+              id: true,
+              nama: true,
+            },
+          },
           createdAt: true,
         },
       });
@@ -72,9 +85,24 @@ export class AuthService {
     try {
       const { email, password } = data;
 
-      // Validasi: Cari user berdasarkan email
+      // Validasi: Cari user berdasarkan email dengan fakultas/prodi
       const user = await prisma.user.findUnique({
         where: { email: email.toLowerCase().trim() },
+        include: {
+          fakultas: {
+            select: {
+              id: true,
+              kode: true,
+              nama: true,
+            },
+          },
+          prodi: {
+            select: {
+              id: true,
+              nama: true,
+            },
+          },
+        },
       });
 
       if (!user) {
@@ -123,8 +151,19 @@ export class AuthService {
           email: true,
           nama: true,
           role: true,
-          fakultas: true,
-          prodi: true,
+          fakultas: {
+            select: {
+              id: true,
+              kode: true,
+              nama: true,
+            },
+          },
+          prodi: {
+            select: {
+              id: true,
+              nama: true,
+            },
+          },
           createdAt: true,
           updatedAt: true,
         },
@@ -206,7 +245,7 @@ export class AuthService {
 
   async updateProfile(userId, data) {
     try {
-      const { nama, fakultas, prodi } = data;
+      const { nama, fakultasId, prodiId } = data;
 
       // Validasi: Cek apakah user ada
       const existingUser = await prisma.user.findUnique({
@@ -235,12 +274,34 @@ export class AuthService {
         }
       }
 
+      // Validasi fakultas dan prodi jika ada
+      if (fakultasId) {
+        const fakultas = await prisma.fakultas.findUnique({
+          where: { id: fakultasId },
+        });
+        if (!fakultas) {
+          const error = new Error('Fakultas tidak ditemukan');
+          error.statusCode = 404;
+          throw error;
+        }
+      }
+
+      if (prodiId) {
+        const prodi = await prisma.prodi.findUnique({
+          where: { id: prodiId },
+        });
+        if (!prodi) {
+          const error = new Error('Program studi tidak ditemukan');
+          error.statusCode = 404;
+          throw error;
+        }
+      }
+
       // Prepare update data (hanya field yang diisi)
       const updateData = {};
       if (nama !== undefined) updateData.nama = nama.trim();
-      if (fakultas !== undefined)
-        updateData.fakultas = fakultas?.trim() || null;
-      if (prodi !== undefined) updateData.prodi = prodi?.trim() || null;
+      if (fakultasId !== undefined) updateData.fakultasId = fakultasId || null;
+      if (prodiId !== undefined) updateData.prodiId = prodiId || null;
 
       // Update user
       const user = await prisma.user.update({
@@ -251,8 +312,19 @@ export class AuthService {
           email: true,
           nama: true,
           role: true,
-          fakultas: true,
-          prodi: true,
+          fakultas: {
+            select: {
+              id: true,
+              kode: true,
+              nama: true,
+            },
+          },
+          prodi: {
+            select: {
+              id: true,
+              nama: true,
+            },
+          },
           updatedAt: true,
         },
       });

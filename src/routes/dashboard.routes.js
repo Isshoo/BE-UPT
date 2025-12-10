@@ -16,7 +16,6 @@ router.get(
   '/marketplace-analytics',
   dashboardController.getMarketplaceAnalytics
 );
-router.get('/umkm-analytics', dashboardController.getUmkmAnalytics);
 router.get('/growth-analytics', dashboardController.getGrowthAnalytics);
 router.get('/recent-activities', dashboardController.getRecentActivities);
 

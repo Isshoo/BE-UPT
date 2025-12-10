@@ -12,6 +12,7 @@ import {
   addSponsorSchema,
   updateSponsorSchema,
   deleteSponsorSchema,
+  uploadCoverSchema,
 } from '../schemas/marketplace.schema.js';
 import {
   getBusinessesByEventSchema,
@@ -36,8 +37,6 @@ export class MarketplaceController {
           'tahunAjaran',
           'lokasi',
           'tanggalPelaksanaan',
-          'mulaiPendaftaran',
-          'akhirPendaftaran',
           'kuotaPeserta',
         ],
         allowed: [
@@ -47,8 +46,6 @@ export class MarketplaceController {
           'tahunAjaran',
           'lokasi',
           'tanggalPelaksanaan',
-          'mulaiPendaftaran',
-          'akhirPendaftaran',
           'kuotaPeserta',
           'sponsor',
           'kategoriPenilaian',
@@ -142,8 +139,6 @@ export class MarketplaceController {
           'tahunAjaran',
           'lokasi',
           'tanggalPelaksanaan',
-          'mulaiPendaftaran',
-          'akhirPendaftaran',
           'kuotaPeserta',
           'status',
         ],
@@ -266,6 +261,39 @@ export class MarketplaceController {
       );
 
       return ApiResponse.success(res, event, 'Layout berhasil diupload');
+    } catch (error) {
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
+    }
+  };
+
+  uploadCover = async (req, res) => {
+    try {
+      await validateRequest(req, {
+        schema: uploadCoverSchema,
+      });
+
+      if (!req.file) {
+        return ApiResponse.error(res, 'File cover harus diupload', 400, [
+          {
+            field: 'cover',
+            message: 'File cover harus diupload',
+          },
+        ]);
+      }
+
+      const { id } = req.params;
+
+      const event = await this.marketplaceService.uploadCover(
+        id,
+        req.file.path
+      );
+
+      return ApiResponse.success(res, event, 'Cover berhasil diupload');
     } catch (error) {
       return ApiResponse.error(
         res,

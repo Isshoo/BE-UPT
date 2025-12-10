@@ -245,7 +245,6 @@ export class NotificationService {
     if (!event) return;
 
     const statusMessages = {
-      PERSIAPAN: 'Pendaftaran telah ditutup. Event dalam tahap persiapan.',
       BERLANGSUNG: 'Event sedang berlangsung! Selamat berjualan!',
       SELESAI: 'Event telah selesai. Terima kasih atas partisipasinya!',
     };

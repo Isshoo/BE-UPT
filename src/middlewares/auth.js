@@ -22,8 +22,19 @@ export class AuthMiddleware {
           email: true,
           nama: true,
           role: true,
-          fakultas: true,
-          prodi: true,
+          fakultas: {
+            select: {
+              id: true,
+              kode: true,
+              nama: true,
+            },
+          },
+          prodi: {
+            select: {
+              id: true,
+              nama: true,
+            },
+          },
         },
       });
 

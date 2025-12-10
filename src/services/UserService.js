@@ -28,8 +28,19 @@ export class UserService {
             id: true,
             nama: true,
             role: true,
-            fakultas: true,
-            prodi: true,
+            fakultas: {
+              select: {
+                id: true,
+                kode: true,
+                nama: true,
+              },
+            },
+            prodi: {
+              select: {
+                id: true,
+                nama: true,
+              },
+            },
           },
           orderBy: { createdAt: 'desc' },
           skip,
@@ -81,8 +92,19 @@ export class UserService {
             email: true,
             nama: true,
             role: true,
-            fakultas: true,
-            prodi: true,
+            fakultas: {
+              select: {
+                id: true,
+                kode: true,
+                nama: true,
+              },
+            },
+            prodi: {
+              select: {
+                id: true,
+                nama: true,
+              },
+            },
             createdAt: true,
           },
           orderBy: { createdAt: 'desc' },
@@ -118,8 +140,19 @@ export class UserService {
           email: true,
           nama: true,
           role: true,
-          fakultas: true,
-          prodi: true,
+          fakultas: {
+            select: {
+              id: true,
+              kode: true,
+              nama: true,
+            },
+          },
+          prodi: {
+            select: {
+              id: true,
+              nama: true,
+            },
+          },
           createdAt: true,
           updatedAt: true,
         },
@@ -141,7 +174,14 @@ export class UserService {
 
   async createUser(data) {
     try {
-      const { email, password, nama, role = 'USER', fakultas, prodi } = data;
+      const {
+        email,
+        password,
+        nama,
+        role = 'USER',
+        fakultasId,
+        prodiId,
+      } = data;
 
       // Validasi: Cek apakah email sudah terdaftar
       const existingUser = await prisma.user.findUnique({
@@ -170,6 +210,29 @@ export class UserService {
         throw error;
       }
 
+      // Validasi fakultas dan prodi jika ada
+      if (fakultasId) {
+        const fakultas = await prisma.fakultas.findUnique({
+          where: { id: fakultasId },
+        });
+        if (!fakultas) {
+          const error = new Error('Fakultas tidak ditemukan');
+          error.statusCode = 404;
+          throw error;
+        }
+      }
+
+      if (prodiId) {
+        const prodi = await prisma.prodi.findUnique({
+          where: { id: prodiId },
+        });
+        if (!prodi) {
+          const error = new Error('Program studi tidak ditemukan');
+          error.statusCode = 404;
+          throw error;
+        }
+      }
+
       // Hash password
       const hashedPassword = await hashPassword(password);
 
@@ -180,16 +243,27 @@ export class UserService {
           password: hashedPassword,
           nama: nama.trim(),
           role,
-          fakultas: role === 'DOSEN' ? fakultas?.trim() || null : null,
-          prodi: role === 'DOSEN' ? prodi?.trim() || null : null,
+          fakultasId: role === 'DOSEN' ? fakultasId || null : null,
+          prodiId: role === 'DOSEN' ? prodiId || null : null,
         },
         select: {
           id: true,
           email: true,
           nama: true,
           role: true,
-          fakultas: true,
-          prodi: true,
+          fakultas: {
+            select: {
+              id: true,
+              kode: true,
+              nama: true,
+            },
+          },
+          prodi: {
+            select: {
+              id: true,
+              nama: true,
+            },
+          },
           createdAt: true,
         },
       });
@@ -204,7 +278,7 @@ export class UserService {
 
   async updateUser(userId, data) {
     try {
-      const { nama, email, fakultas, prodi } = data;
+      const { nama, email, fakultasId, prodiId } = data;
 
       // Validasi: Cek apakah user ada
       const existingUser = await prisma.user.findUnique({
@@ -248,14 +322,37 @@ export class UserService {
         }
       }
 
+      // Validasi fakultas dan prodi jika ada
+      if (fakultasId) {
+        const fakultas = await prisma.fakultas.findUnique({
+          where: { id: fakultasId },
+        });
+        if (!fakultas) {
+          const error = new Error('Fakultas tidak ditemukan');
+          error.statusCode = 404;
+          throw error;
+        }
+      }
+
+      if (prodiId) {
+        const prodi = await prisma.prodi.findUnique({
+          where: { id: prodiId },
+        });
+        if (!prodi) {
+          const error = new Error('Program studi tidak ditemukan');
+          error.statusCode = 404;
+          throw error;
+        }
+      }
+
       // Prepare update data (hanya field yang diisi)
       const updateData = {};
       if (nama !== undefined) updateData.nama = nama.trim();
       if (email !== undefined) updateData.email = email.toLowerCase().trim();
       if (existingUser.role === 'DOSEN') {
-        if (fakultas !== undefined)
-          updateData.fakultas = fakultas?.trim() || null;
-        if (prodi !== undefined) updateData.prodi = prodi?.trim() || null;
+        if (fakultasId !== undefined)
+          updateData.fakultasId = fakultasId || null;
+        if (prodiId !== undefined) updateData.prodiId = prodiId || null;
       }
 
       // Update user
@@ -267,8 +364,19 @@ export class UserService {
           email: true,
           nama: true,
           role: true,
-          fakultas: true,
-          prodi: true,
+          fakultas: {
+            select: {
+              id: true,
+              kode: true,
+              nama: true,
+            },
+          },
+          prodi: {
+            select: {
+              id: true,
+              nama: true,
+            },
+          },
           updatedAt: true,
         },
       });
@@ -290,7 +398,6 @@ export class UserService {
           _count: {
             select: {
               usaha: true,
-              umkm: true,
             },
           },
         },
@@ -303,9 +410,9 @@ export class UserService {
       }
 
       // Validasi: Cegah penghapusan user yang memiliki data terkait
-      if (user._count.usaha > 0 || user._count.umkm > 0) {
+      if (user._count.usaha > 0) {
         const error = new Error(
-          'User tidak dapat dihapus karena memiliki data terkait (usaha atau UMKM). Silakan hapus data terkait terlebih dahulu.'
+          'User tidak dapat dihapus karena memiliki data usaha terkait. Silakan hapus data terkait terlebih dahulu.'
         );
         error.statusCode = 400;
         throw error;

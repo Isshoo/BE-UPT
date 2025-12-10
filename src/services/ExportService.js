@@ -14,8 +14,16 @@ export class ExportService {
           nama: true,
           email: true,
           role: true,
-          fakultas: true,
-          prodi: true,
+          fakultas: {
+            select: {
+              nama: true,
+            },
+          },
+          prodi: {
+            select: {
+              nama: true,
+            },
+          },
           createdAt: true,
         },
       });
@@ -67,8 +75,8 @@ export class ExportService {
           user.nama,
           user.email,
           user.role,
-          user.fakultas || '-',
-          user.prodi || '-',
+          user.fakultas?.nama || '-',
+          user.prodi?.nama || '-',
           new Date(user.createdAt).toLocaleDateString('id-ID'),
         ]);
       });
@@ -81,117 +89,6 @@ export class ExportService {
         { width: 12 },
         { width: 20 },
         { width: 25 },
-        { width: 15 },
-      ];
-
-      // Add borders
-      worksheet.eachRow((row, rowNumber) => {
-        if (rowNumber > 3) {
-          row.eachCell((cell) => {
-            cell.border = {
-              top: { style: 'thin' },
-              left: { style: 'thin' },
-              bottom: { style: 'thin' },
-              right: { style: 'thin' },
-            };
-          });
-        }
-      });
-
-      const buffer = await workbook.xlsx.writeBuffer();
-      return buffer;
-    } catch (error) {
-      const err = new Error(error.message);
-      err.statusCode = error.statusCode || 500;
-      throw err;
-    }
-  }
-
-  async exportUmkmToExcel() {
-    try {
-      const umkms = await prisma.umkm.findMany({
-        include: {
-          user: {
-            select: {
-              nama: true,
-              email: true,
-            },
-          },
-          tahap: {
-            orderBy: { tahap: 'asc' },
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-      });
-
-      const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet('Data UMKM');
-
-      // Add title
-      worksheet.mergeCells('A1:H1');
-      worksheet.getCell('A1').value = 'DATA UMKM BINAAN UPT-PIK';
-      worksheet.getCell('A1').font = { size: 16, bold: true };
-      worksheet.getCell('A1').alignment = {
-        horizontal: 'center',
-        vertical: 'middle',
-      };
-      worksheet.getRow(1).height = 30;
-
-      // Add export date
-      worksheet.mergeCells('A2:H2');
-      worksheet.getCell('A2').value =
-        `Diekspor pada: ${new Date().toLocaleString('id-ID')}`;
-      worksheet.getCell('A2').font = { size: 10, italic: true };
-      worksheet.getCell('A2').alignment = { horizontal: 'center' };
-
-      // Add headers
-      worksheet.addRow([]);
-      const headerRow = worksheet.addRow([
-        'No',
-        'Nama UMKM',
-        'Kategori',
-        'Pemilik',
-        'Kontak',
-        'Tahap Saat Ini',
-        'Status Tahap',
-        'Tanggal Daftar',
-      ]);
-
-      headerRow.font = { bold: true };
-      headerRow.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FFFBA635' },
-      };
-      headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
-
-      // Add data
-      umkms.forEach((umkm, index) => {
-        const currentStage = umkm.tahap.find(
-          (t) => t.tahap === umkm.tahapSaatIni
-        );
-
-        worksheet.addRow([
-          index + 1,
-          umkm.nama,
-          umkm.kategori,
-          umkm.namaPemilik,
-          umkm.telepon,
-          `Tahap ${umkm.tahapSaatIni}`,
-          currentStage?.status || '-',
-          new Date(umkm.createdAt).toLocaleDateString('id-ID'),
-        ]);
-      });
-
-      // Style columns
-      worksheet.columns = [
-        { width: 5 },
-        { width: 25 },
-        { width: 20 },
-        { width: 20 },
-        { width: 15 },
-        { width: 12 },
-        { width: 20 },
         { width: 15 },
       ];
 

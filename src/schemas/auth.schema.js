@@ -21,6 +21,9 @@ export const registerSchema = z.object({
       .min(1, 'Nama tidak boleh kosong')
       .max(255, 'Nama terlalu panjang')
       .trim(),
+    role: z.string().optional().nullable(),
+    fakultasId: z.string().optional().nullable(),
+    prodiId: z.string().optional().nullable(),
   }),
 });
 
@@ -59,7 +62,7 @@ export const updateProfileSchema = z.object({
       .max(255, 'Nama terlalu panjang')
       .trim()
       .optional(),
-    fakultas: z.string().max(255, 'Fakultas terlalu panjang').optional(),
-    prodi: z.string().max(255, 'Program studi terlalu panjang').optional(),
+    fakultasId: z.string().optional().nullable(),
+    prodiId: z.string().optional().nullable(),
   }),
 });

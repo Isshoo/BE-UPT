@@ -5,61 +5,43 @@ export class DashboardService {
 
   async getGeneralStats() {
     try {
-      const [
-        totalUsers,
-        totalEvents,
-        totalUmkm,
-        totalPeserta,
-        activeEvents,
-        pendingUmkmValidation,
-      ] = await Promise.all([
-        // Total users (exclude admin)
-        prisma.user.count({
-          where: {
-            role: {
-              in: ['USER', 'DOSEN'],
+      const [totalUsers, totalEvents, totalPeserta, activeEvents] =
+        await Promise.all([
+          // Total users (exclude admin)
+          prisma.user.count({
+            where: {
+              role: {
+                in: ['USER', 'DOSEN'],
+              },
             },
-          },
-        }),
+          }),
 
-        // Total events
-        prisma.eventMarketplace.count(),
+          // Total events
+          prisma.eventMarketplace.count(),
 
-        // Total UMKM
-        prisma.umkm.count(),
-
-        // Total peserta marketplace (unique users)
-        prisma.usaha.findMany({
-          select: {
-            pemilikId: true,
-          },
-          distinct: ['pemilikId'],
-        }),
-
-        // Active events (TERBUKA, PERSIAPAN, BERLANGSUNG)
-        prisma.eventMarketplace.count({
-          where: {
-            status: {
-              in: ['TERBUKA', 'PERSIAPAN', 'BERLANGSUNG'],
+          // Total peserta marketplace (unique users)
+          prisma.usaha.findMany({
+            select: {
+              pemilikId: true,
             },
-          },
-        }),
+            distinct: ['pemilikId'],
+          }),
 
-        // UMKM waiting for validation
-        prisma.tahapUmkm.count({
-          where: {
-            status: 'MENUNGGU_VALIDASI',
-          },
-        }),
-      ]);
+          // Active events (TERBUKA, BERLANGSUNG)
+          prisma.eventMarketplace.count({
+            where: {
+              status: {
+                in: ['TERBUKA', 'BERLANGSUNG'],
+              },
+            },
+          }),
+        ]);
 
       return {
         totalUsers,
         totalEvents,
-        totalUmkm,
         totalPeserta: totalPeserta.length,
         activeEvents,
-        pendingUmkmValidation,
       };
     } catch (error) {
       const err = new Error(error.message);
@@ -107,40 +89,66 @@ export class DashboardService {
         _count: true,
       });
 
-      // Faculty comparison (for MAHASISWA type)
-      const facultyComparison = await prisma.usaha.groupBy({
-        by: ['fakultas'],
+      // Faculty comparison (for MAHASISWA type) - now uses fakultasId relation
+      const facultyComparisonRaw = await prisma.usaha.findMany({
         where: {
           tipeUsaha: 'MAHASISWA',
-          fakultas: {
-            not: null,
-          },
+          fakultasId: { not: null },
         },
-        _count: true,
-        orderBy: {
-          _count: {
-            fakultas: 'desc',
+        select: {
+          fakultas: {
+            select: {
+              kode: true,
+              nama: true,
+            },
           },
         },
       });
 
-      // Program studi comparison (top 10)
-      const prodiComparison = await prisma.usaha.groupBy({
-        by: ['prodi'],
+      // Group by fakultas
+      const facultyMap = new Map();
+      facultyComparisonRaw.forEach((item) => {
+        if (item.fakultas) {
+          const key = item.fakultas.kode;
+          if (!facultyMap.has(key)) {
+            facultyMap.set(key, { fakultas: item.fakultas.nama, count: 0 });
+          }
+          facultyMap.get(key).count++;
+        }
+      });
+      const facultyComparison = Array.from(facultyMap.values()).sort(
+        (a, b) => b.count - a.count
+      );
+
+      // Program studi comparison (top 10) - now uses prodiId relation
+      const prodiComparisonRaw = await prisma.usaha.findMany({
         where: {
           tipeUsaha: 'MAHASISWA',
+          prodiId: { not: null },
+        },
+        select: {
           prodi: {
-            not: null,
+            select: {
+              nama: true,
+            },
           },
         },
-        _count: true,
-        orderBy: {
-          _count: {
-            prodi: 'desc',
-          },
-        },
-        take: 10,
       });
+
+      // Group by prodi
+      const prodiMap = new Map();
+      prodiComparisonRaw.forEach((item) => {
+        if (item.prodi) {
+          const key = item.prodi.nama;
+          if (!prodiMap.has(key)) {
+            prodiMap.set(key, { prodi: key, count: 0 });
+          }
+          prodiMap.get(key).count++;
+        }
+      });
+      const prodiComparison = Array.from(prodiMap.values())
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
 
       // Approval rate
       const [totalBusiness, approvedBusiness] = await Promise.all([
@@ -169,99 +177,9 @@ export class DashboardService {
           type: item.tipeUsaha,
           count: item._count,
         })),
-        facultyComparison: facultyComparison.map((item) => ({
-          fakultas: item.fakultas,
-          count: item._count,
-        })),
-        prodiComparison: prodiComparison.map((item) => ({
-          prodi: item.prodi,
-          count: item._count,
-        })),
+        facultyComparison,
+        prodiComparison,
         approvalRate,
-      };
-    } catch (error) {
-      const err = new Error(error.message);
-      err.statusCode = error.statusCode || 500;
-      throw err;
-    }
-  }
-
-  // ========== UMKM ANALYTICS ==========
-
-  async getUmkmAnalytics() {
-    try {
-      // UMKM per stage
-      const umkmPerStage = await prisma.umkm.groupBy({
-        by: ['tahapSaatIni'],
-        _count: true,
-        orderBy: {
-          tahapSaatIni: 'asc',
-        },
-      });
-
-      // UMKM by category
-      const umkmByCategory = await prisma.umkm.groupBy({
-        by: ['kategori'],
-        _count: true,
-        orderBy: {
-          _count: {
-            kategori: 'desc',
-          },
-        },
-      });
-
-      // Stage completion rate
-      const stageCompletionRate = await Promise.all(
-        [1, 2, 3, 4].map(async (tahap) => {
-          const completed = await prisma.tahapUmkm.count({
-            where: {
-              tahap,
-              status: 'SELESAI',
-            },
-          });
-
-          const total = await prisma.tahapUmkm.count({
-            where: { tahap },
-          });
-
-          return {
-            tahap,
-            completionRate:
-              total > 0 ? Math.round((completed / total) * 100) : 0,
-            completed,
-            total,
-          };
-        })
-      );
-
-      // Recent UMKM registrations (last 6 months)
-      const sixMonthsAgo = new Date();
-      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
-      const recentRegistrations = await prisma.umkm.groupBy({
-        by: ['createdAt'],
-        where: {
-          createdAt: {
-            gte: sixMonthsAgo,
-          },
-        },
-        _count: true,
-      });
-
-      // Group by month
-      const registrationsByMonth = this.groupByMonth(recentRegistrations);
-
-      return {
-        umkmPerStage: umkmPerStage.map((item) => ({
-          tahap: item.tahapSaatIni,
-          count: item._count,
-        })),
-        umkmByCategory: umkmByCategory.map((item) => ({
-          kategori: item.kategori,
-          count: item._count,
-        })),
-        stageCompletionRate,
-        registrationsByMonth,
       };
     } catch (error) {
       const err = new Error(error.message);
@@ -291,17 +209,6 @@ export class DashboardService {
         _count: true,
       });
 
-      // UMKM growth (by month)
-      const umkmGrowth = await prisma.umkm.groupBy({
-        by: ['createdAt'],
-        where: {
-          createdAt: {
-            gte: oneYearAgo,
-          },
-        },
-        _count: true,
-      });
-
       // Event growth (by semester/tahun ajaran)
       const eventGrowth = await prisma.eventMarketplace.groupBy({
         by: ['tahunAjaran', 'semester'],
@@ -311,7 +218,6 @@ export class DashboardService {
 
       return {
         userGrowth: this.groupByMonth(userGrowth),
-        umkmGrowth: this.groupByMonth(umkmGrowth),
         eventGrowth: eventGrowth.map((item) => ({
           period: `${item.semester} ${item.tahunAjaran}`,
           count: item._count,
@@ -362,28 +268,9 @@ export class DashboardService {
         },
       });
 
-      // Recent UMKM registrations
-      const recentUmkm = await prisma.umkm.findMany({
-        take: 5,
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          nama: true,
-          kategori: true,
-          tahapSaatIni: true,
-          createdAt: true,
-          user: {
-            select: {
-              nama: true,
-            },
-          },
-        },
-      });
-
       return {
         recentEvents,
         recentBusinesses,
-        recentUmkm,
       };
     } catch (error) {
       const err = new Error(error.message);

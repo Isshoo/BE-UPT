@@ -78,8 +78,8 @@ export class BusinessService {
           ...(tipeUsaha === 'MAHASISWA' && {
             anggota: businessData.anggota,
             ketuaId: businessData.ketuaId,
-            fakultas: businessData.fakultas?.trim() || null,
-            prodi: businessData.prodi?.trim() || null,
+            fakultasId: businessData.fakultasId || null,
+            prodiId: businessData.prodiId || null,
             pembimbingId: businessData.pembimbingId || null,
             mataKuliah: businessData.mataKuliah?.trim() || null,
           }),
@@ -103,6 +103,19 @@ export class BusinessService {
               id: true,
               nama: true,
               email: true,
+            },
+          },
+          fakultas: {
+            select: {
+              id: true,
+              kode: true,
+              nama: true,
+            },
+          },
+          prodi: {
+            select: {
+              id: true,
+              nama: true,
             },
           },
         },
@@ -175,6 +188,19 @@ export class BusinessService {
               id: true,
               nama: true,
               email: true,
+            },
+          },
+          fakultas: {
+            select: {
+              id: true,
+              kode: true,
+              nama: true,
+            },
+          },
+          prodi: {
+            select: {
+              id: true,
+              nama: true,
             },
           },
         },

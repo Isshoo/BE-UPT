@@ -3,110 +3,99 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-const FAKULTAS_OPTIONS = [
-  { value: 'Teknik', label: 'Teknik' },
-  { value: 'Hukum', label: 'Hukum' },
-  { value: 'FEB', label: 'Ekonomi dan Bisnis' },
-  { value: 'Pertanian', label: 'Pertanian' },
-  { value: 'Keperawatan', label: 'Keperawatan' },
-  { value: 'Pariwisata', label: 'Pariwisata' },
-  { value: 'PGSD', label: 'Ilmu Pendidikan' },
-];
-
-const PRODI_BY_FAKULTAS = {
-  Teknik: [
-    'Teknik Elektro',
-    'Teknik Industri',
-    'Teknik Informatika',
-    'Teknik Sipil',
-  ],
-  Hukum: ['Hukum'],
-  FEB: ['Manajemen', 'Akuntansi'],
-  Pertanian: ['Agribisnis'],
-  Keperawatan: ['Ilmu Keperawatan', 'Profesi Ners', 'Fisioterapi'],
-  Pariwisata: ['Hospitality dan Pariwisata'],
-  PGSD: ['Pendidikan Guru Sekolah Dasar'],
-};
-
 const ListDosen = [
   {
     nama: 'Inneke Victor, PhD',
     email: 'ivictor@unikadelasalle.ac.id',
-    fakultas: 'Teknik',
-    prodi: 'Teknik Industri',
+    fakultasKode: 'Teknik',
+    prodiNama: 'Teknik Industri',
   },
   {
     nama: 'Margie Christanty Poluan, S.E.,M.S.A',
     email: 'mpoluan@unikadelasalle.ac.id',
-    fakultas: 'FEB',
-    prodi: 'Akuntansi',
+    fakultasKode: 'FEB',
+    prodiNama: 'Akuntansi',
   },
   {
     nama: 'Steify M. E. W. Sepang, S.E., M.Si., Ak., C.A',
     email: 'ssepang@unikadelasalle.ac.id',
-    fakultas: 'FEB',
-    prodi: 'Akuntansi',
+    fakultasKode: 'FEB',
+    prodiNama: 'Akuntansi',
   },
-  // {
-  //   nama: 'Dr. Stella T. Kaunang, S.p., M.Si',
-  //   email: 'skaunang@unikadelasalle.ac.id',
-  //   fakultas: '',
-  //   prodi: '',
-  // },
-  // {
-  //   nama: 'Richard Uguy, ST., MT',
-  //   email: 'ruguy@unikadelasalle.ac.id',
-  //   fakultas: '',
-  //   prodi: '',
-  // },
-  // {
-  //   nama: 'Teddy Tandaju, S.E., MBA(Adv.)',
-  //   email: 'ttandaju@unikadelasalle.ac.id',
-  //   fakultas: '',
-  //   prodi: '',
-  // },
-  // {
-  //   nama: 'Steven Yones Kawatak, S.E., M.Ec.',
-  //   email: 'skawatak@unikadelasalle.ac.id',
-  //   fakultas: '',
-  //   prodi: '',
-  // },
-  // {
-  //   nama: 'Veronica Wongkar,  S.Pd., M.Pd',
-  //   email: 'vwongkar@unikadelasalle.ac.id',
-  //   fakultas: '',
-  //   prodi: '',
-  // },
   {
     nama: 'Deiby N. F. Tiwow, S.Pd., M.Pd',
     email: 'dtiwow@unikadelasalle.ac.id',
-    fakultas: 'PGSD',
-    prodi: 'Pendidikan Guru Sekolah Dasar',
+    fakultasKode: 'PGSD',
+    prodiNama: 'Pendidikan Guru Sekolah Dasar',
   },
 ];
 
 async function main() {
-  console.log('🌱 Starting seed...');
+  console.log('🌱 Starting Dosen seed...\n');
 
   const hashedPassword = await bcrypt.hash('1234', 10);
 
-  // Dosen
-  const dosenList = [];
-  ListDosen.forEach(async (d) => {
+  let createdCount = 0;
+  let skippedCount = 0;
+
+  for (const d of ListDosen) {
+    // Check if dosen already exists
+    const existing = await prisma.user.findUnique({
+      where: { email: d.email },
+    });
+
+    if (existing) {
+      console.log(`⏭️  Skipped (already exists): ${d.nama}`);
+      skippedCount++;
+      continue;
+    }
+
+    // Find fakultas by kode
+    const fakultas = await prisma.fakultas.findUnique({
+      where: { kode: d.fakultasKode },
+    });
+
+    if (!fakultas) {
+      console.log(
+        `⚠️  Skipped (fakultas not found: ${d.fakultasKode}): ${d.nama}`
+      );
+      skippedCount++;
+      continue;
+    }
+
+    // Find prodi by nama and fakultasId
+    const prodi = await prisma.prodi.findFirst({
+      where: {
+        nama: d.prodiNama,
+        fakultasId: fakultas.id,
+      },
+    });
+
+    if (!prodi) {
+      console.log(`⚠️  Skipped (prodi not found: ${d.prodiNama}): ${d.nama}`);
+      skippedCount++;
+      continue;
+    }
+
+    // Create dosen
     const dosen = await prisma.user.create({
       data: {
         email: d.email,
         password: hashedPassword,
         nama: d.nama,
         role: 'DOSEN',
-        fakultas: d.fakultas,
-        prodi: d.prodi,
+        fakultasId: fakultas.id,
+        prodiId: prodi.id,
       },
     });
-    dosenList.push(dosen);
-  });
 
-  console.log(`✅ ${dosenList.length} Dosen created`);
+    console.log(`✅ Created: ${dosen.nama} (${fakultas.nama} - ${prodi.nama})`);
+    createdCount++;
+  }
+
+  console.log(`\n✨ Seeding Dosen selesai!`);
+  console.log(`   Created: ${createdCount}`);
+  console.log(`   Skipped: ${skippedCount}`);
 }
 
 main()

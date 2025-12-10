@@ -5,13 +5,7 @@
 import { string, z } from 'zod';
 
 // Status Event enum
-const StatusEventEnum = z.enum([
-  'DRAFT',
-  'TERBUKA',
-  'PERSIAPAN',
-  'BERLANGSUNG',
-  'SELESAI',
-]);
+const StatusEventEnum = z.enum(['DRAFT', 'TERBUKA', 'BERLANGSUNG', 'SELESAI']);
 
 // Query params untuk get events
 export const getEventsQuerySchema = z.object({
@@ -78,20 +72,6 @@ export const createEventSchema = z.object({
         (val) => !isNaN(Date.parse(val)),
         'Format tanggal pelaksanaan tidak valid'
       ),
-    mulaiPendaftaran: z
-      .string({ required_error: 'Tanggal mulai pendaftaran harus diisi' })
-      .min(1, 'Tanggal mulai pendaftaran tidak boleh kosong')
-      .refine(
-        (val) => !isNaN(Date.parse(val)),
-        'Format tanggal mulai pendaftaran tidak valid'
-      ),
-    akhirPendaftaran: z
-      .string({ required_error: 'Tanggal akhir pendaftaran harus diisi' })
-      .min(1, 'Tanggal akhir pendaftaran tidak boleh kosong')
-      .refine(
-        (val) => !isNaN(Date.parse(val)),
-        'Format tanggal akhir pendaftaran tidak valid'
-      ),
     kuotaPeserta: z
       .string({ required_error: 'Kuota peserta harus diisi' })
       .min(1, 'Kuota peserta minimal 1'),
@@ -149,24 +129,14 @@ export const updateEventSchema = z.object({
         'Format tanggal pelaksanaan tidak valid'
       )
       .optional(),
-    mulaiPendaftaran: z
-      .string()
-      .refine(
-        (val) => !val || !isNaN(Date.parse(val)),
-        'Format tanggal mulai pendaftaran tidak valid'
-      )
-      .optional(),
-    akhirPendaftaran: z
-      .string()
-      .refine(
-        (val) => !val || !isNaN(Date.parse(val)),
-        'Format tanggal akhir pendaftaran tidak valid'
-      )
-      .optional(),
     kuotaPeserta: z
       .number()
       .int('Kuota peserta harus bilangan bulat')
       .min(1, 'Kuota peserta minimal 1')
+      .optional(),
+    gambarCover: z
+      .string()
+      .url('Gambar cover harus berupa URL valid')
       .optional(),
     status: StatusEventEnum.optional(),
   }),
@@ -184,6 +154,13 @@ export const lockUnlockEventSchema = z.object({
 
 // Upload Layout
 export const uploadLayoutSchema = z.object({
+  params: z.object({
+    id: z.string().min(1, 'ID event harus diisi'),
+  }),
+});
+
+// Upload Gambar Cover
+export const uploadCoverSchema = z.object({
   params: z.object({
     id: z.string().min(1, 'ID event harus diisi'),
   }),

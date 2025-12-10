@@ -118,12 +118,12 @@ export class UserController {
       // Validasi dengan Zod schema + Controller validation
       await validateRequest(req, {
         required: ['email', 'password', 'nama'],
-        allowed: ['email', 'password', 'nama', 'role', 'fakultas', 'prodi'],
+        allowed: ['email', 'password', 'nama', 'role', 'fakultasId', 'prodiId'],
         schema: createUserSchema,
       });
 
       // Extract validated data (sudah divalidasi dan di-sanitize oleh Zod)
-      const { email, password, nama, role, fakultas, prodi } = req.body;
+      const { email, password, nama, role, fakultasId, prodiId } = req.body;
 
       // Panggil service
       const user = await this.userService.createUser({
@@ -131,8 +131,8 @@ export class UserController {
         password,
         nama,
         role,
-        fakultas,
-        prodi,
+        fakultasId,
+        prodiId,
       });
 
       // Return success response
@@ -152,17 +152,17 @@ export class UserController {
       // Validasi dengan Zod schema + Controller validation
       await validateRequest(req, {
         required: [],
-        allowed: ['nama', 'email', 'fakultas', 'prodi'],
+        allowed: ['nama', 'email', 'fakultasId', 'prodiId'],
         schema: updateUserSchema,
       });
 
       // Validasi business rule: Minimal 1 field harus diisi untuk update
-      const { nama, email, fakultas, prodi } = req.body;
+      const { nama, email, fakultasId, prodiId } = req.body;
       const hasAnyField =
         nama !== undefined ||
         email !== undefined ||
-        fakultas !== undefined ||
-        prodi !== undefined;
+        fakultasId !== undefined ||
+        prodiId !== undefined;
 
       if (!hasAnyField) {
         return ApiResponse.error(
@@ -186,8 +186,8 @@ export class UserController {
       const user = await this.userService.updateUser(id, {
         nama,
         email,
-        fakultas,
-        prodi,
+        fakultasId,
+        prodiId,
       });
 
       // Return success response

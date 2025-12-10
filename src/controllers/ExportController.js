@@ -3,7 +3,6 @@ import { ApiResponse } from '../utils/response.js';
 import { validateRequest } from '../utils/validators.js';
 import {
   exportUsersQuerySchema,
-  exportUmkmQuerySchema,
   exportEventSchema,
   exportAssessmentSchema,
   exportMarketplaceQuerySchema,
@@ -33,50 +32,6 @@ export class ExportController {
         res.setHeader(
           'Content-Disposition',
           `attachment; filename=data-pengguna-${Date.now()}.xlsx`
-        );
-
-        return res.send(buffer);
-      }
-
-      return ApiResponse.error(
-        res,
-        'Format tidak didukung. Hanya format excel yang tersedia.',
-        400,
-        [
-          {
-            field: 'format',
-            message: 'Format harus "excel"',
-          },
-        ]
-      );
-    } catch (error) {
-      return ApiResponse.error(
-        res,
-        error.message || 'Terjadi kesalahan',
-        error.statusCode || 500,
-        error.errors || null
-      );
-    }
-  };
-
-  exportUmkm = async (req, res) => {
-    try {
-      await validateRequest(req, {
-        schema: exportUmkmQuerySchema,
-      });
-
-      const { format } = req.query;
-
-      if (format === 'excel') {
-        const buffer = await this.exportService.exportUmkmToExcel();
-
-        res.setHeader(
-          'Content-Type',
-          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        );
-        res.setHeader(
-          'Content-Disposition',
-          `attachment; filename=data-umkm-${Date.now()}.xlsx`
         );
 
         return res.send(buffer);

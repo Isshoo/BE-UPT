@@ -49,18 +49,8 @@ export const createUserSchema = z.object({
       .max(255, 'Nama terlalu panjang')
       .trim(),
     role: RoleEnum.default('USER'),
-    fakultas: z
-      .string()
-      .max(255, 'Fakultas terlalu panjang')
-      .trim()
-      .optional()
-      .nullable(),
-    prodi: z
-      .string()
-      .max(255, 'Program studi terlalu panjang')
-      .trim()
-      .optional()
-      .nullable(),
+    fakultasId: z.string().optional().nullable(),
+    prodiId: z.string().optional().nullable(),
   }),
 });
 
@@ -80,18 +70,8 @@ export const updateUserSchema = z.object({
       .max(255, 'Email terlalu panjang')
       .transform((val) => val.toLowerCase().trim())
       .optional(),
-    fakultas: z
-      .string()
-      .max(255, 'Fakultas terlalu panjang')
-      .trim()
-      .optional()
-      .nullable(),
-    prodi: z
-      .string()
-      .max(255, 'Program studi terlalu panjang')
-      .trim()
-      .optional()
-      .nullable(),
+    fakultasId: z.string().optional().nullable(),
+    prodiId: z.string().optional().nullable(),
   }),
   params: z.object({
     id: z.string().min(1, 'ID user harus diisi'),

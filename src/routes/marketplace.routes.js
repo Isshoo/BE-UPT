@@ -62,6 +62,13 @@ router.post(
   marketplaceController.uploadLayout
 );
 
+router.post(
+  '/:id/cover',
+  AuthMiddleware.authorize('ADMIN'),
+  uploadImage.single('cover'),
+  marketplaceController.uploadCover
+);
+
 // Admin only routes - Sponsor management
 router.post(
   '/:eventId/sponsors',
