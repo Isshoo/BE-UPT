@@ -9,7 +9,7 @@
     "start": "node src/index.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "node prisma/seed.js",
+    "prisma:seed": "node prisma/seedAll.js",
     "prisma:seedAdmin": "node prisma/seedAdmin.js",
     "prisma:seedDosen": "node prisma/seedDosen.js",
     "prisma:seedFakultasProdi": "node prisma/seedFakultasProdi.js",
