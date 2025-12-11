@@ -421,9 +421,9 @@ async function seedKategoriAndKriteria(eventMap, userMap) {
     for (let k = 0; k < KATEGORI_DATA.length; k++) {
       const kat = KATEGORI_DATA[k];
 
-      // Assign 2 random dosen as penilai
+      // Assign 1 random dosen as penilai
       const shuffledDosen = [...dosenIds].sort(() => Math.random() - 0.5);
-      const penilaiIds = shuffledDosen.slice(0, 2);
+      const penilaiIds = shuffledDosen.slice(0, 1);
 
       const kategori = await prisma.kategoriPenilaian.create({
         data: {
