@@ -5,42 +5,56 @@ export class DashboardService {
 
   async getGeneralStats() {
     try {
-      const [totalUsers, totalEvents, totalPeserta, activeEvents] =
-        await Promise.all([
-          // Total users (exclude admin)
-          prisma.user.count({
-            where: {
-              role: {
-                in: ['USER', 'DOSEN'],
-              },
+      const [
+        totalUsers,
+        totalEvents,
+        totalPeserta,
+        totalKategori,
+        activeEvents,
+      ] = await Promise.all([
+        // Total users (exclude admin)
+        prisma.user.count({
+          where: {
+            role: {
+              in: ['USER', 'DOSEN'],
             },
-          }),
+          },
+        }),
 
-          // Total events
-          prisma.eventMarketplace.count(),
+        // Total events
+        prisma.eventMarketplace.count(),
 
-          // Total peserta marketplace (unique users)
-          prisma.usaha.findMany({
-            select: {
-              pemilikId: true,
+        // Total peserta marketplace (unique users)
+        prisma.usaha.findMany({
+          select: {
+            pemilikId: true,
+          },
+          distinct: ['pemilikId'],
+        }),
+
+        // Total Kategori penilaian dengan nama unik dari seluruh event
+        prisma.kategoriPenilaian.findMany({
+          select: {
+            nama: true,
+          },
+          distinct: ['nama'],
+        }),
+
+        // Active events (TERBUKA, BERLANGSUNG)
+        prisma.eventMarketplace.count({
+          where: {
+            status: {
+              in: ['TERBUKA', 'BERLANGSUNG'],
             },
-            distinct: ['pemilikId'],
-          }),
-
-          // Active events (TERBUKA, BERLANGSUNG)
-          prisma.eventMarketplace.count({
-            where: {
-              status: {
-                in: ['TERBUKA', 'BERLANGSUNG'],
-              },
-            },
-          }),
-        ]);
+          },
+        }),
+      ]);
 
       return {
         totalUsers,
         totalEvents,
         totalPeserta: totalPeserta.length,
+        totalKategori: totalKategori.length,
         activeEvents,
       };
     } catch (error) {
