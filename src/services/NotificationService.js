@@ -297,7 +297,7 @@ export class NotificationService {
         userId: usaha.pembimbingId,
         judul: 'Mahasiswa Bimbingan Mendaftar Event',
         pesan: `Mahasiswa Anda mendaftarkan usaha "${usaha.namaProduk}" di event "${usaha.event.nama}"`,
-        link: `/pendampingan/${usaha.eventId}`,
+        link: `/dosen/pendampingan/${usaha.eventId}`,
       });
     }
   }
@@ -335,7 +335,7 @@ export class NotificationService {
       userId: dosenId,
       judul: 'Penugasan Penilaian Baru',
       pesan: `Anda ditugaskan sebagai penilai kategori "${kategori.nama}" di event "${kategori.event.nama}"`,
-      link: `/penilaian/${kategori.eventId}`,
+      link: `/dosen/penilaian/${kategori.eventId}`,
     });
   }
 
