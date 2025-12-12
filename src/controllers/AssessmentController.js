@@ -119,7 +119,8 @@ export class AssessmentController {
           [
             {
               field: 'body',
-              message: 'Minimal satu field (nama, deskripsi, atau penilaiIds) harus diisi',
+              message:
+                'Minimal satu field (nama, deskripsi, atau penilaiIds) harus diisi',
             },
           ]
         );
@@ -202,7 +203,8 @@ export class AssessmentController {
 
       const { kategoriId } = req.params;
 
-      const result = await this.assessmentService.getScoresByKategori(kategoriId);
+      const result =
+        await this.assessmentService.getScoresByKategori(kategoriId);
 
       return ApiResponse.success(res, result, 'Data nilai berhasil diambil');
     } catch (error) {
@@ -226,7 +228,10 @@ export class AssessmentController {
       const { kategoriId } = req.params;
       const { usahaId } = req.body;
 
-      const kategori = await this.assessmentService.setWinner(kategoriId, usahaId);
+      const kategori = await this.assessmentService.setWinner(
+        kategoriId,
+        usahaId
+      );
 
       return ApiResponse.success(res, kategori, 'Pemenang berhasil ditetapkan');
     } catch (error) {
@@ -305,6 +310,32 @@ export class AssessmentController {
         res,
         business,
         'Usaha mahasiswa berhasil disetujui'
+      );
+    } catch (error) {
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
+    }
+  };
+
+  rejectMentoredBusiness = async (req, res) => {
+    try {
+      const { businessId } = req.params;
+      const { alasan } = req.body;
+
+      const business = await this.assessmentService.rejectMentoredBusiness(
+        businessId,
+        alasan,
+        req.user.id
+      );
+
+      return ApiResponse.success(
+        res,
+        business,
+        'Usaha mahasiswa berhasil ditolak'
       );
     } catch (error) {
       return ApiResponse.error(

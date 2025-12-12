@@ -12,12 +12,12 @@ router.use(AuthMiddleware.authenticate);
 router.post(
   '/events/:eventId/categories',
   AuthMiddleware.authorize('ADMIN'),
-  assessmentController.createKategori,
+  assessmentController.createKategori
 );
 
 router.get(
   '/events/:eventId/categories',
-  assessmentController.getKategoriByEvent,
+  assessmentController.getKategoriByEvent
 );
 
 router.get('/categories/:kategoriId', assessmentController.getKategoriById);
@@ -25,53 +25,59 @@ router.get('/categories/:kategoriId', assessmentController.getKategoriById);
 router.put(
   '/categories/:kategoriId',
   AuthMiddleware.authorize('ADMIN'),
-  assessmentController.updateKategori,
+  assessmentController.updateKategori
 );
 
 router.delete(
   '/categories/:kategoriId',
   AuthMiddleware.authorize('ADMIN'),
-  assessmentController.deleteKategori,
+  assessmentController.deleteKategori
 );
 
 // Admin only - Set winner
 router.post(
   '/categories/:kategoriId/winner',
   AuthMiddleware.authorize('ADMIN'),
-  assessmentController.setWinner,
+  assessmentController.setWinner
 );
 
 // Dosen routes - Penilaian
 router.post(
   '/scores',
   AuthMiddleware.authorize('DOSEN'),
-  assessmentController.submitScore,
+  assessmentController.submitScore
 );
 
 router.get(
   '/categories/:kategoriId/scores',
   AuthMiddleware.authorize('ADMIN', 'DOSEN'),
-  assessmentController.getScoresByKategori,
+  assessmentController.getScoresByKategori
 );
 
 // Dosen routes - Get assigned categories
 router.get(
   '/dosen/categories',
   AuthMiddleware.authorize('DOSEN'),
-  assessmentController.getKategoriByDosen,
+  assessmentController.getKategoriByDosen
 );
 
 // Dosen routes - Pendampingan
 router.get(
   '/dosen/businesses',
   AuthMiddleware.authorize('DOSEN'),
-  assessmentController.getMentoredBusinesses,
+  assessmentController.getMentoredBusinesses
 );
 
 router.post(
   '/dosen/businesses/:businessId/approve',
   AuthMiddleware.authorize('DOSEN'),
-  assessmentController.approveMentoredBusiness,
+  assessmentController.approveMentoredBusiness
+);
+
+router.post(
+  '/dosen/businesses/:businessId/reject',
+  AuthMiddleware.authorize('DOSEN'),
+  assessmentController.rejectMentoredBusiness
 );
 
 export default router;

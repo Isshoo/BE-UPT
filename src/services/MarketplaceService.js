@@ -637,7 +637,7 @@ export class MarketplaceService {
               kategori: true,
               tipeUsaha: true,
               nomorBooth: true,
-              disetujui: true,
+              status: true,
             },
           },
         },

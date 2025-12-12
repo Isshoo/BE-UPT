@@ -25,6 +25,13 @@ enum TipeUsaha {
   UMKM_LUAR
 }
 
+enum StatusPendaftaran {
+  PENDING
+  DISETUJUI
+  DITOLAK
+  DIBATALKAN
+}
+
 // ==================== MASTER DATA ====================
 
 model Fakultas {
@@ -199,12 +206,13 @@ model Usaha {
   namaPemilik    String?
   alamat         String?
   
-  telepon        String
-  nomorBooth     String?
-  disetujui      Boolean      @default(false)
-  tanggalDisetujui DateTime?  @db.Timestamptz
-  createdAt      DateTime     @default(now()) @db.Timestamptz
-  updatedAt      DateTime     @updatedAt      @db.Timestamptz
+  telepon           String
+  nomorBooth        String?
+  status            StatusPendaftaran @default(PENDING)
+  alasanPenolakan   String?      @db.Text
+  tanggalDisetujui  DateTime?    @db.Timestamptz
+  createdAt         DateTime     @default(now()) @db.Timestamptz
+  updatedAt         DateTime     @updatedAt      @db.Timestamptz
 
   pemilik            User                  @relation(fields: [pemilikId], references: [id])
   event              EventMarketplace      @relation(fields: [eventId], references: [id], onDelete: Cascade)

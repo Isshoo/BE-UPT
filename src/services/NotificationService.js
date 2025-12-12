@@ -321,6 +321,29 @@ export class NotificationService {
     });
   }
 
+  async notifyBusinessRejected(usahaId) {
+    const usaha = await prisma.usaha.findUnique({
+      where: { id: usahaId },
+      include: {
+        event: true,
+        pemilik: true,
+      },
+    });
+
+    if (!usaha) return;
+
+    const alasanText = usaha.alasanPenolakan
+      ? ` Alasan: ${usaha.alasanPenolakan}`
+      : '';
+
+    await this.createNotification({
+      userId: usaha.pemilikId,
+      judul: 'Pendaftaran Usaha Ditolak',
+      pesan: `Usaha "${usaha.namaProduk}" ditolak untuk event "${usaha.event.nama}".${alasanText}`,
+      link: `/marketplace/${usaha.eventId}`,
+    });
+  }
+
   async notifyAssessmentAssigned(kategoriId, dosenId) {
     const kategori = await prisma.kategoriPenilaian.findUnique({
       where: { id: kategoriId },

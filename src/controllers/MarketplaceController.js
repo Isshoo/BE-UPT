@@ -452,13 +452,13 @@ export class MarketplaceController {
       });
 
       const { eventId } = req.params;
-      const { tipeUsaha, disetujui, search } = req.query;
+      const { tipeUsaha, status, search } = req.query;
 
       const businesses = await this.businessService.getBusinessesByEvent(
         eventId,
         {
           tipeUsaha,
-          disetujui,
+          status,
           search,
         }
       );
@@ -543,6 +543,52 @@ export class MarketplaceController {
         res,
         history,
         'Riwayat marketplace berhasil diambil'
+      );
+    } catch (error) {
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
+    }
+  };
+
+  rejectBusiness = async (req, res) => {
+    try {
+      const { businessId } = req.params;
+      const { alasan } = req.body;
+
+      const business = await this.businessService.rejectBusiness(
+        businessId,
+        alasan,
+        req.user.id
+      );
+
+      return ApiResponse.success(res, business, 'Peserta berhasil ditolak');
+    } catch (error) {
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
+    }
+  };
+
+  cancelRegistration = async (req, res) => {
+    try {
+      const { businessId } = req.params;
+
+      const result = await this.businessService.cancelRegistration(
+        businessId,
+        req.user.id
+      );
+
+      return ApiResponse.success(
+        res,
+        result,
+        'Pendaftaran berhasil dibatalkan'
       );
     } catch (error) {
       return ApiResponse.error(

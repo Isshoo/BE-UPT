@@ -102,9 +102,21 @@ router.post(
 );
 
 router.post(
+  '/businesses/:businessId/reject',
+  AuthMiddleware.authorize('ADMIN'),
+  marketplaceController.rejectBusiness
+);
+
+router.post(
   '/businesses/:businessId/booth',
   AuthMiddleware.authorize('ADMIN'),
   marketplaceController.assignBoothNumber
+);
+
+// User routes - Cancel own registration
+router.post(
+  '/businesses/:businessId/cancel',
+  marketplaceController.cancelRegistration
 );
 
 export default router;

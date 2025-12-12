@@ -341,7 +341,7 @@ export class AssessmentService {
             include: {
               usaha: {
                 where: {
-                  disetujui: true,
+                  status: 'DISETUJUI',
                   tipeUsaha: 'MAHASISWA', // Only mahasiswa can be assessed
                 },
                 include: {
@@ -389,7 +389,7 @@ export class AssessmentService {
               kriteriaId: kriteria.id,
               namaKriteria: kriteria.nama,
               bobot: kriteria.bobot,
-              nilai: score?.nilai || 0,
+              nilai: score?.nilai,
               weightedScore,
             };
           });
@@ -525,7 +525,7 @@ export class AssessmentService {
         const businesses = await prisma.usaha.findMany({
           where: {
             eventId,
-            disetujui: true,
+            status: 'DISETUJUI',
             tipeUsaha: 'MAHASISWA',
           },
           include: {
@@ -785,8 +785,17 @@ export class AssessmentService {
       }
 
       // Validasi: Cek apakah sudah disetujui
-      if (business.disetujui) {
+      if (business.status === 'DISETUJUI') {
         const error = new Error('Usaha sudah disetujui sebelumnya');
+        error.statusCode = 400;
+        throw error;
+      }
+
+      // Validasi: Cek apakah status masih PENDING
+      if (business.status !== 'PENDING') {
+        const error = new Error(
+          'Hanya usaha dengan status PENDING yang dapat disetujui'
+        );
         error.statusCode = 400;
         throw error;
       }
@@ -795,7 +804,7 @@ export class AssessmentService {
       const updatedBusiness = await prisma.usaha.update({
         where: { id: businessId },
         data: {
-          disetujui: true,
+          status: 'DISETUJUI',
           tanggalDisetujui: new Date(),
         },
         include: {
@@ -805,6 +814,58 @@ export class AssessmentService {
 
       // Notify user about approval
       await this.notificationService.notifyBusinessApproved(updatedBusiness.id);
+
+      return updatedBusiness;
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
+    }
+  }
+
+  async rejectMentoredBusiness(businessId, alasan, dosenId) {
+    try {
+      // Validasi: Cek apakah business ada
+      const business = await prisma.usaha.findUnique({
+        where: { id: businessId },
+      });
+
+      if (!business) {
+        const error = new Error('Usaha tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      // Validasi: Cek apakah dosen adalah pembimbing
+      if (business.pembimbingId !== dosenId) {
+        const error = new Error('Anda bukan pembimbing usaha ini');
+        error.statusCode = 403;
+        throw error;
+      }
+
+      // Validasi: Cek apakah status masih PENDING
+      if (business.status !== 'PENDING') {
+        const error = new Error(
+          'Hanya usaha dengan status PENDING yang dapat ditolak'
+        );
+        error.statusCode = 400;
+        throw error;
+      }
+
+      // Update business
+      const updatedBusiness = await prisma.usaha.update({
+        where: { id: businessId },
+        data: {
+          status: 'DITOLAK',
+          alasanPenolakan: alasan?.trim() || null,
+        },
+        include: {
+          pemilik: true,
+        },
+      });
+
+      // Notify user about rejection
+      await this.notificationService.notifyBusinessRejected(updatedBusiness.id);
 
       return updatedBusiness;
     } catch (error) {

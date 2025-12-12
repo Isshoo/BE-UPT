@@ -168,7 +168,7 @@ export class DashboardService {
       const [totalBusiness, approvedBusiness] = await Promise.all([
         prisma.usaha.count(),
         prisma.usaha.count({
-          where: { disetujui: true },
+          where: { status: 'DISETUJUI' },
         }),
       ]);
 

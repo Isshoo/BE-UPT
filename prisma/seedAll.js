@@ -508,10 +508,11 @@ async function seedUsaha(eventMap, userMap, fakultasMap, prodiMap) {
               ? prodiMap.get(`${owner.fakultasKode}:${owner.prodiNama}`)
               : null,
           pembimbingId: userMap.get(pembimbingEmail),
-          nomorBooth: `A${(usahaIndex % 20) + 1}`,
-          disetujui: EVENT_DATA[i].status !== 'TERBUKA', // Approved if not open
-          tanggalDisetujui:
-            EVENT_DATA[i].status !== 'TERBUKA' ? new Date() : null,
+          nomorBooth:
+            EVENT_DATA[i].status !== 'TERBUKA'
+              ? `A${(usahaIndex % 20) + 1}`
+              : null,
+          status: EVENT_DATA[i].status !== 'TERBUKA' ? 'DISETUJUI' : 'PENDING',
         },
       });
       usahaMap.set(`${i}:mahasiswa:${m}`, usaha.id);
@@ -537,10 +538,12 @@ async function seedUsaha(eventMap, userMap, fakultasMap, prodiMap) {
             alamat: u.alamat,
             eventId: eventId,
             pemilikId: userMap.get(ownerEmail),
-            nomorBooth: `B${(usahaIndex % 10) + 1}`,
-            disetujui: EVENT_DATA[i].status !== 'TERBUKA',
-            tanggalDisetujui:
-              EVENT_DATA[i].status !== 'TERBUKA' ? new Date() : null,
+            nomorBooth:
+              EVENT_DATA[i].status !== 'TERBUKA'
+                ? `B${(usahaIndex % 10) + 1}`
+                : null,
+            status:
+              EVENT_DATA[i].status !== 'TERBUKA' ? 'DISETUJUI' : 'PENDING',
           },
         });
         usahaMap.set(`${i}:umkm:${m}`, usaha.id);
@@ -571,7 +574,7 @@ async function seedNilaiPenilaian(eventMap, usahaMap, userMap) {
 
     // Get all usaha for this event
     const usahaList = await prisma.usaha.findMany({
-      where: { eventId, disetujui: true },
+      where: { eventId, status: 'DISETUJUI' },
     });
 
     for (const kategori of kategoriList) {
