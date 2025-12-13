@@ -398,6 +398,7 @@ export class UserService {
           _count: {
             select: {
               usaha: true,
+              nilaiPenilaian: true,
             },
           },
         },
@@ -412,7 +413,15 @@ export class UserService {
       // Validasi: Cegah penghapusan user yang memiliki data terkait
       if (user._count.usaha > 0) {
         const error = new Error(
-          'User tidak dapat dihapus karena memiliki data usaha terkait. Silakan hapus data terkait terlebih dahulu.'
+          'User tidak dapat dihapus karena memiliki data usaha terkait.'
+        );
+        error.statusCode = 400;
+        throw error;
+      }
+
+      if (user._count.nilaiPenilaian > 0) {
+        const error = new Error(
+          'User tidak dapat dihapus karena memiliki data penilaian terkait.'
         );
         error.statusCode = 400;
         throw error;
