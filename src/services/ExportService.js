@@ -369,7 +369,6 @@ export class ExportService {
               pembimbing: { select: { nama: true } },
               fakultas: { select: { nama: true } },
               prodi: { select: { nama: true } },
-              anggota: true,
             },
             orderBy: { nomorBooth: 'asc' },
           },
@@ -439,7 +438,7 @@ export class ExportService {
         'Fakultas',
         'Prodi',
         'Pembimbing',
-        'Jumlah Anggota',
+        'Anggota',
         'Status',
       ]);
 
@@ -463,7 +462,7 @@ export class ExportService {
           usaha.fakultas?.nama || '-',
           usaha.prodi?.nama || '-',
           usaha.pembimbing?.nama || '-',
-          usaha.anggota?.length || 1,
+          usaha.anggota?.map((anggota) => anggota.nama).join(', ') || '-',
           usaha.status,
         ]);
       });
