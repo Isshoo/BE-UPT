@@ -408,10 +408,13 @@ export class ExportService {
         ['Kuota Peserta', event.kuotaPeserta],
         ['Total Peserta', event.usaha.length],
         ['Status', event.status],
-        ['Peserta Disetujui', event.usaha.filter((u) => u.disetujui).length],
+        [
+          'Peserta Disetujui',
+          event.usaha.filter((u) => u.status === 'DISETUJUI').length,
+        ],
         [
           'Menunggu Persetujuan',
-          event.usaha.filter((u) => !u.disetujui).length,
+          event.usaha.filter((u) => u.status === 'PENDING').length,
         ],
       ];
 
@@ -461,7 +464,7 @@ export class ExportService {
           usaha.prodi?.nama || '-',
           usaha.pembimbing?.nama || '-',
           usaha.anggota?.length || 1,
-          usaha.disetujui ? 'Disetujui' : 'Menunggu',
+          usaha.status,
         ]);
       });
 
@@ -553,8 +556,12 @@ export class ExportService {
         throw error;
       }
 
-      const approvedCount = event.usaha.filter((u) => u.disetujui).length;
-      const pendingCount = event.usaha.filter((u) => !u.disetujui).length;
+      const approvedCount = event.usaha.filter(
+        (u) => u.status === 'DISETUJUI'
+      ).length;
+      const pendingCount = event.usaha.filter(
+        (u) => u.status === 'PENDING'
+      ).length;
 
       return new Promise((resolve, reject) => {
         const doc = new PDFDocument({
@@ -634,7 +641,7 @@ export class ExportService {
           u.namaProduk,
           u.pemilik.nama,
           u.fakultas?.nama || '-',
-          u.disetujui ? 'Disetujui' : 'Menunggu',
+          u.status,
         ]);
 
         this.drawTable(doc, headers, rows, {
@@ -696,7 +703,7 @@ export class ExportService {
       const businesses = await prisma.usaha.findMany({
         where: {
           eventId: kategori.eventId,
-          disetujui: true,
+          status: 'DISETUJUI',
           tipeUsaha: 'MAHASISWA',
         },
         include: {
@@ -841,7 +848,7 @@ export class ExportService {
       const businesses = await prisma.usaha.findMany({
         where: {
           eventId: kategori.eventId,
-          disetujui: true,
+          status: 'DISETUJUI',
           tipeUsaha: 'MAHASISWA',
         },
         include: {
@@ -990,7 +997,7 @@ export class ExportService {
         where,
         include: {
           _count: { select: { usaha: true } },
-          usaha: { select: { disetujui: true } },
+          usaha: { select: { status: true } },
         },
         orderBy: [{ tahunAjaran: 'desc' }, { semester: 'desc' }],
       });
@@ -1040,7 +1047,9 @@ export class ExportService {
 
       // Data
       events.forEach((event, index) => {
-        const approvedCount = event.usaha.filter((u) => u.disetujui).length;
+        const approvedCount = event.usaha.filter(
+          (u) => u.status === 'DISETUJUI'
+        ).length;
         worksheet.addRow([
           index + 1,
           event.nama,
@@ -1130,7 +1139,7 @@ export class ExportService {
         where,
         include: {
           _count: { select: { usaha: true } },
-          usaha: { select: { disetujui: true } },
+          usaha: { select: { status: true } },
         },
         orderBy: [{ tahunAjaran: 'desc' }, { semester: 'desc' }],
       });
@@ -1334,7 +1343,7 @@ export class ExportService {
             usaha.telepon,
             usaha.fakultas?.nama || '-',
             usaha.prodi?.nama || '-',
-            usaha.disetujui ? 'Disetujui' : 'Menunggu',
+            usaha.status,
           ]);
         });
       });
@@ -1437,7 +1446,7 @@ export class ExportService {
             u.nomorBooth || '-',
             u.namaProduk,
             u.pemilik.nama,
-            u.disetujui ? 'Disetujui' : 'Menunggu',
+            u.status,
           ]);
 
           if (rows.length > 0) {

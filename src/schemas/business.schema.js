@@ -58,10 +58,7 @@ export const getBusinessesByEventSchema = z.object({
   }),
   query: z.object({
     tipeUsaha: z.enum(['MAHASISWA', 'UMKM_LUAR']).optional(),
-    disetujui: z
-      .string()
-      .optional()
-      .transform((val) => val === 'true'),
+    status: z.string().optional(),
     search: z.string().optional(),
   }),
 });

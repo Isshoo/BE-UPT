@@ -396,7 +396,7 @@ export class MarketplaceService {
         where: { id: eventId },
         include: {
           usaha: {
-            where: { disetujui: true },
+            where: { status: true },
           },
         },
       });
