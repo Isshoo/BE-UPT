@@ -221,6 +221,8 @@ export class MarketplaceService {
                   nama: true,
                 },
               },
+              fakultas: true,
+              prodi: true,
             },
             orderBy: { createdAt: 'desc' },
           },

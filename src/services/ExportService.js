@@ -347,7 +347,7 @@ export class ExportService {
         });
 
         // Footer
-        this.addPdfFooter(doc);
+        // this.addPdfFooter(doc);
 
         doc.end();
       });
@@ -671,7 +671,7 @@ export class ExportService {
         }
 
         // Footer
-        this.addPdfFooter(doc);
+        // this.addPdfFooter(doc);
 
         doc.end();
       });
@@ -973,7 +973,7 @@ export class ExportService {
         });
 
         // Footer
-        this.addPdfFooter(doc);
+        // this.addPdfFooter(doc);
 
         doc.end();
       });
@@ -1200,7 +1200,7 @@ export class ExportService {
         });
 
         // Footer
-        this.addPdfFooter(doc);
+        // this.addPdfFooter(doc);
 
         doc.end();
       });
@@ -1462,7 +1462,7 @@ export class ExportService {
         });
 
         // Footer
-        this.addPdfFooter(doc);
+        // this.addPdfFooter(doc);
 
         doc.end();
       });

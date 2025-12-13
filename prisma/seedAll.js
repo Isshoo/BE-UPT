@@ -483,10 +483,16 @@ async function seedUsaha(eventMap, userMap, fakultasMap, prodiMap) {
     for (let m = 0; m < USAHA_MAHASISWA_DATA.length; m++) {
       const u = USAHA_MAHASISWA_DATA[m];
       const ownerEmail = userEmails[m % userEmails.length];
-      const owner = USER_DATA.find((user) => user.email === ownerEmail);
 
       // Get a dosen as pembimbing
       const pembimbingEmail = DOSEN_DATA[m % DOSEN_DATA.length].email;
+
+      const fakultasId = fakultasMap.get(
+        DOSEN_DATA[m % DOSEN_DATA.length].fakultasKode
+      );
+      const prodiId = prodiMap.get(
+        `${DOSEN_DATA[m % DOSEN_DATA.length].fakultasKode}:${DOSEN_DATA[m % DOSEN_DATA.length].prodiNama}`
+      );
 
       const usaha = await prisma.usaha.create({
         data: {
@@ -500,13 +506,8 @@ async function seedUsaha(eventMap, userMap, fakultasMap, prodiMap) {
           ketuaId: u.anggota[0]?.nim || null,
           eventId: eventId,
           pemilikId: userMap.get(ownerEmail),
-          fakultasId: owner?.fakultasKode
-            ? fakultasMap.get(owner.fakultasKode)
-            : null,
-          prodiId:
-            owner?.fakultasKode && owner?.prodiNama
-              ? prodiMap.get(`${owner.fakultasKode}:${owner.prodiNama}`)
-              : null,
+          fakultasId: fakultasId,
+          prodiId: prodiId,
           pembimbingId: userMap.get(pembimbingEmail),
           nomorBooth:
             EVENT_DATA[i].status !== 'TERBUKA'
