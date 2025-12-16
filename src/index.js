@@ -47,6 +47,7 @@ app.get('/', (req, res) => {
   });
 });
 
+app.set('trust proxy', true);
 // Routes
 app.use('/api', apiLimiter);
 app.use('/api', routes);
