@@ -54,10 +54,17 @@ const documentStorage = new CloudinaryStorage({
   },
 });
 
-export const uploadImage = multer({ storage: imageStorage });
-export const uploadDocument = multer({ storage: documentStorage });
+export const uploadImage = multer({
+  storage: imageStorage,
+  limits: { fileSize: 20 * 1024 * 1024 },
+}); // 20MB limit
+export const uploadDocument = multer({
+  storage: documentStorage,
+  limits: { fileSize: 50 * 1024 * 1024 },
+});
 export const uploadMultiple = multer({
   storage: new CloudinaryStorage({
+    limits: { fileSize: 50 * 1024 * 1024 },
     cloudinary: cloudinary,
     params: {
       folder: 'upt-pik/files',
