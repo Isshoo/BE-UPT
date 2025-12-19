@@ -14,7 +14,6 @@ enum Role {
 }
 
 enum StatusEvent {
-  DRAFT
   TERBUKA
   BERLANGSUNG
   SELESAI
@@ -103,7 +102,7 @@ model EventMarketplace {
   lokasi             String
   tanggalPelaksanaan DateTime     @db.Timestamptz
   kuotaPeserta       Int
-  status             StatusEvent  @default(DRAFT)
+  status             StatusEvent  
   gambarCover        String?
   gambarLayout       String?
   terkunci           Boolean      @default(false)

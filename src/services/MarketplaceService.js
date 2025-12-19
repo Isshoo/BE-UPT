@@ -24,8 +24,14 @@ export class MarketplaceService {
         kategoriPenilaian,
       } = data;
 
-      // Validasi: Validasi tanggal
+      // Validasi: Validasi tanggal jika sudah lewat
       const eventDate = new Date(tanggalPelaksanaan);
+      const now = new Date();
+      if (eventDate < now) {
+        const error = new Error('Tanggal pelaksanaan tidak boleh di masa lalu');
+        error.statusCode = 400;
+        throw error;
+      }
 
       // validasi nama event tidak boleh sama dengan nama event lain
       const existingEvent = await prisma.eventMarketplace.findFirst({
@@ -290,6 +296,16 @@ export class MarketplaceService {
           const error = new Error(
             'Nama event sudah ada. Silakan gunakan nama lain.'
           );
+          error.statusCode = 400;
+          throw error;
+        }
+      }
+
+      // validasi tanggal jika diubah dan sudah lewat
+      if (tanggalPelaksanaan !== undefined) {
+        const eventDate = new Date(tanggalPelaksanaan);
+        if (eventDate < new Date()) {
+          const error = new Error('Tanggal pelaksanaan sudah lewat');
           error.statusCode = 400;
           throw error;
         }
