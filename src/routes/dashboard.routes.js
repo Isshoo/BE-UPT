@@ -9,7 +9,7 @@ router.get('/stats', dashboardController.getGeneralStats);
 
 // All routes require admin authentication
 router.use(AuthMiddleware.authenticate);
-router.use(AuthMiddleware.authorize('ADMIN'));
+router.use(AuthMiddleware.authorize('ADMIN', 'WR_II'));
 
 // Individual analytics endpoints
 router.get(

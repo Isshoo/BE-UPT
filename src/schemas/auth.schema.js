@@ -21,6 +21,14 @@ export const registerSchema = z.object({
       .min(1, 'Nama tidak boleh kosong')
       .max(255, 'Nama terlalu panjang')
       .trim(),
+    telepon: z
+      .string({ required_error: 'Nomor telepon harus diisi' })
+      .min(10, 'Nomor telepon minimal 10 digit')
+      .max(15, 'Nomor telepon maksimal 15 digit')
+      .regex(
+        /^(\+62|62|0)[0-9]{9,13}$/,
+        'Format nomor telepon tidak valid (contoh: 08123456789)'
+      ),
     role: z.string().optional().nullable(),
     fakultasId: z.string().optional().nullable(),
     prodiId: z.string().optional().nullable(),
@@ -61,6 +69,12 @@ export const updateProfileSchema = z.object({
       .min(1, 'Nama tidak boleh kosong')
       .max(255, 'Nama terlalu panjang')
       .trim()
+      .optional(),
+    telepon: z
+      .string()
+      .min(10, 'Nomor telepon minimal 10 digit')
+      .max(15, 'Nomor telepon maksimal 15 digit')
+      .regex(/^(\+62|62|0)[0-9]{9,13}$/, 'Format nomor telepon tidak valid')
       .optional(),
     fakultasId: z.string().optional().nullable(),
     prodiId: z.string().optional().nullable(),

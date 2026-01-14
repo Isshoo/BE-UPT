@@ -13,7 +13,10 @@ async function main() {
       email: 'upt-pik@unikadelasalle.ac.id',
       password: hashedPassword,
       nama: 'Admin',
+      telepon: '081234567890',
       role: 'ADMIN',
+      status: 'AKTIF',
+      verifiedAt: new Date(),
     },
   });
 

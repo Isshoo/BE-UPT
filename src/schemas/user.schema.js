@@ -5,7 +5,7 @@
 import { z } from 'zod';
 
 // Role enum
-const RoleEnum = z.enum(['ADMIN', 'DOSEN', 'USER']);
+const RoleEnum = z.enum(['ADMIN', 'DOSEN', 'USER', 'WR_II']);
 
 // Query params untuk pagination dan filter
 export const getUsersQuerySchema = z.object({
@@ -27,6 +27,7 @@ export const getUsersQuerySchema = z.object({
         'Limit harus antara 1-100'
       ),
     search: z.string().optional(),
+    status: z.string().optional(),
   }),
 });
 
@@ -48,6 +49,14 @@ export const createUserSchema = z.object({
       .min(1, 'Nama tidak boleh kosong')
       .max(255, 'Nama terlalu panjang')
       .trim(),
+    telepon: z
+      .string({ required_error: 'Nomor telepon harus diisi' })
+      .min(10, 'Nomor telepon minimal 10 digit')
+      .max(15, 'Nomor telepon maksimal 15 digit')
+      .regex(
+        /^(\+62|62|0)[0-9]{9,13}$/,
+        'Format nomor telepon tidak valid (contoh: 08123456789)'
+      ),
     role: RoleEnum.default('USER'),
     fakultasId: z.string().optional().nullable(),
     prodiId: z.string().optional().nullable(),
@@ -69,6 +78,15 @@ export const updateUserSchema = z.object({
       .min(1, 'Email tidak boleh kosong')
       .max(255, 'Email terlalu panjang')
       .transform((val) => val.toLowerCase().trim())
+      .optional(),
+    telepon: z
+      .string()
+      .min(10, 'Nomor telepon minimal 10 digit')
+      .max(15, 'Nomor telepon maksimal 15 digit')
+      .regex(
+        /^(\+62|62|0)[0-9]{9,13}$/,
+        'Format nomor telepon tidak valid (contoh: 08123456789)'
+      )
       .optional(),
     fakultasId: z.string().optional().nullable(),
     prodiId: z.string().optional().nullable(),

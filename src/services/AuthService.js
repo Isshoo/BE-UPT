@@ -5,7 +5,8 @@ import { generateToken } from '../config/jwt.js';
 export class AuthService {
   async register(data) {
     try {
-      const { email, password, nama, role, fakultasId, prodiId } = data;
+      const { email, password, nama, telepon, role, fakultasId, prodiId } =
+        data;
 
       // Validasi: Cek apakah email atau nama sudah terdaftar
       const existingEmail = await prisma.user.findUnique({
@@ -32,16 +33,31 @@ export class AuthService {
         throw error;
       }
 
+      // Validasi: Cek apakah telepon sudah terdaftar
+      const existingPhone = await prisma.user.findFirst({
+        where: { telepon: telepon.trim() },
+      });
+
+      if (existingPhone) {
+        const error = new Error(
+          'Nomor telepon sudah terdaftar. Silakan gunakan nomor lain.'
+        );
+        error.statusCode = 409;
+        throw error;
+      }
+
       // Hash password
       const hashedPassword = await hashPassword(password);
 
-      // Create user
+      // Create user dengan status MENUNGGU (perlu approval admin)
       const user = await prisma.user.create({
         data: {
           email: email.toLowerCase().trim(),
           password: hashedPassword,
           nama: nama.trim(),
+          telepon: telepon.trim(),
           role: role || 'USER',
+          status: 'MENUNGGU', // Default menunggu approval admin
           fakultasId: fakultasId || null,
           prodiId: prodiId || null,
         },
@@ -49,7 +65,9 @@ export class AuthService {
           id: true,
           email: true,
           nama: true,
+          telepon: true,
           role: true,
+          status: true,
           fakultas: {
             select: {
               id: true,
@@ -67,12 +85,11 @@ export class AuthService {
         },
       });
 
-      // Generate token
-      const token = generateToken({ userId: user.id });
-
+      // Return user tanpa token (user harus menunggu approval admin)
       return {
         user,
-        token,
+        message:
+          'Registrasi berhasil! Akun Anda sedang menunggu persetujuan admin. Silakan tunggu konfirmasi.',
       };
     } catch (error) {
       const err = new Error(error.message);
@@ -113,6 +130,23 @@ export class AuthService {
         throw error;
       }
 
+      // Validasi: Cek status akun
+      if (user.status === 'MENUNGGU') {
+        const error = new Error(
+          'Akun Anda masih menunggu persetujuan admin. Silakan tunggu konfirmasi.'
+        );
+        error.statusCode = 403;
+        throw error;
+      }
+
+      if (user.status === 'DITOLAK') {
+        const error = new Error(
+          'Akun Anda telah ditolak. Silakan hubungi admin untuk informasi lebih lanjut.'
+        );
+        error.statusCode = 403;
+        throw error;
+      }
+
       // Validasi: Verifikasi password
       const isPasswordValid = await comparePassword(password, user.password);
 
@@ -150,7 +184,9 @@ export class AuthService {
           id: true,
           email: true,
           nama: true,
+          telepon: true,
           role: true,
+          status: true,
           fakultas: {
             select: {
               id: true,

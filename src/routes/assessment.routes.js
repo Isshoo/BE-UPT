@@ -50,7 +50,7 @@ router.post(
 
 router.get(
   '/categories/:kategoriId/scores',
-  AuthMiddleware.authorize('ADMIN', 'DOSEN'),
+  AuthMiddleware.authorize('ADMIN', 'DOSEN', 'WR_II'),
   assessmentController.getScoresByKategori
 );
 

@@ -67,7 +67,7 @@ export class UserService {
 
   async getUsers(filters = {}) {
     try {
-      const { role, page = 1, limit = 100, search } = filters;
+      const { role, page = 1, limit = 100, search, status } = filters;
 
       const where = {};
 
@@ -79,7 +79,12 @@ export class UserService {
         where.OR = [
           { nama: { contains: search, mode: 'insensitive' } },
           { email: { contains: search, mode: 'insensitive' } },
+          { telepon: { contains: search, mode: 'insensitive' } },
         ];
+      }
+
+      if (status) {
+        where.status = status;
       }
 
       const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -91,7 +96,9 @@ export class UserService {
             id: true,
             email: true,
             nama: true,
+            telepon: true,
             role: true,
+            status: true,
             fakultas: {
               select: {
                 id: true,
@@ -139,7 +146,11 @@ export class UserService {
           id: true,
           email: true,
           nama: true,
+          telepon: true,
           role: true,
+          status: true,
+          verifiedAt: true,
+          verifiedBy: true,
           fakultas: {
             select: {
               id: true,
@@ -178,9 +189,11 @@ export class UserService {
         email,
         password,
         nama,
+        telepon,
         role = 'USER',
         fakultasId,
         prodiId,
+        status = 'AKTIF',
       } = data;
 
       // Validasi: Cek apakah email sudah terdaftar
@@ -196,6 +209,20 @@ export class UserService {
         throw error;
       }
 
+      // jika role adalah WR_II hanya boleh ada 1
+      if (role === 'WR_II') {
+        const existingWR_II = await prisma.user.findFirst({
+          where: { role: 'WR_II' },
+        });
+        if (existingWR_II) {
+          const error = new Error(
+            'WR II sudah terdaftar. Hanya boleh ada 1 WR II.'
+          );
+          error.statusCode = 409;
+          throw error;
+        }
+      }
+
       // Validasi: Cek apakah nama sudah terdaftar
       // Gunakan findFirst karena nama bukan unique field
       const existingName = await prisma.user.findFirst({
@@ -208,6 +235,21 @@ export class UserService {
         );
         error.statusCode = 409;
         throw error;
+      }
+
+      // Validasi telepon jika ada
+      if (telepon) {
+        const existingTelepon = await prisma.user.findFirst({
+          where: { telepon: telepon.trim() },
+        });
+
+        if (existingTelepon) {
+          const error = new Error(
+            'Nomor telepon sudah terdaftar. Silakan gunakan nomor lain.'
+          );
+          error.statusCode = 409;
+          throw error;
+        }
       }
 
       // Validasi fakultas dan prodi jika ada
@@ -242,7 +284,9 @@ export class UserService {
           email: email.toLowerCase().trim(),
           password: hashedPassword,
           nama: nama.trim(),
+          telepon: telepon.trim(),
           role,
+          status,
           fakultasId: role === 'DOSEN' ? fakultasId || null : null,
           prodiId: role === 'DOSEN' ? prodiId || null : null,
         },
@@ -278,7 +322,7 @@ export class UserService {
 
   async updateUser(userId, data) {
     try {
-      const { nama, email, fakultasId, prodiId } = data;
+      const { nama, email, telepon, fakultasId, prodiId } = data;
 
       // Validasi: Cek apakah user ada
       const existingUser = await prisma.user.findUnique({
@@ -322,6 +366,21 @@ export class UserService {
         }
       }
 
+      // Validasi telepon jika ada
+      if (telepon && telepon.trim() !== existingUser.telepon) {
+        const teleponExists = await prisma.user.findFirst({
+          where: { telepon: telepon.trim() },
+        });
+
+        if (teleponExists) {
+          const error = new Error(
+            'Nomor telepon sudah digunakan. Silakan gunakan nomor lain.'
+          );
+          error.statusCode = 409;
+          throw error;
+        }
+      }
+
       // Validasi fakultas dan prodi jika ada
       if (fakultasId) {
         const fakultas = await prisma.fakultas.findUnique({
@@ -349,6 +408,7 @@ export class UserService {
       const updateData = {};
       if (nama !== undefined) updateData.nama = nama.trim();
       if (email !== undefined) updateData.email = email.toLowerCase().trim();
+      if (telepon !== undefined) updateData.telepon = telepon.trim();
       if (existingUser.role === 'DOSEN') {
         if (fakultasId !== undefined)
           updateData.fakultasId = fakultasId || null;
@@ -472,10 +532,14 @@ export class UserService {
 
   async getStatistics() {
     try {
-      const [total, byRole] = await Promise.all([
+      const [total, byRole, byStatus] = await Promise.all([
         prisma.user.count(),
         prisma.user.groupBy({
           by: ['role'],
+          _count: true,
+        }),
+        prisma.user.groupBy({
+          by: ['status'],
           _count: true,
         }),
       ]);
@@ -486,6 +550,109 @@ export class UserService {
           acc[item.role.toLowerCase()] = item._count;
           return acc;
         }, {}),
+        byStatus: byStatus.reduce((acc, item) => {
+          acc[item.status.toLowerCase()] = item._count;
+          return acc;
+        }, {}),
+      };
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
+    }
+  }
+
+  async verifyUser(userId, adminId) {
+    try {
+      // Validasi: Cek apakah user ada
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        const error = new Error('User tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      // Validasi: Cek apakah user sudah diverifikasi
+      if (user.status === 'AKTIF') {
+        const error = new Error('User sudah diverifikasi sebelumnya');
+        error.statusCode = 400;
+        throw error;
+      }
+
+      // Update status menjadi AKTIF
+      const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: {
+          status: 'AKTIF',
+          verifiedAt: new Date(),
+          verifiedBy: adminId,
+        },
+        select: {
+          id: true,
+          email: true,
+          nama: true,
+          telepon: true,
+          role: true,
+          status: true,
+          verifiedAt: true,
+          createdAt: true,
+        },
+      });
+
+      return {
+        user: updatedUser,
+        message: 'User berhasil diverifikasi dan dapat login ke sistem',
+      };
+    } catch (error) {
+      const err = new Error(error.message);
+      err.statusCode = error.statusCode || 500;
+      throw err;
+    }
+  }
+
+  async rejectUser(userId) {
+    try {
+      // Validasi: Cek apakah user ada
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        const error = new Error('User tidak ditemukan');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      // Validasi: Cek apakah user sudah diverifikasi
+      if (user.status === 'AKTIF') {
+        const error = new Error('Tidak dapat menolak user yang sudah aktif');
+        error.statusCode = 400;
+        throw error;
+      }
+
+      // Update status menjadi DITOLAK
+      const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: {
+          status: 'DITOLAK',
+        },
+        select: {
+          id: true,
+          email: true,
+          nama: true,
+          telepon: true,
+          role: true,
+          status: true,
+          createdAt: true,
+        },
+      });
+
+      return {
+        user: updatedUser,
+        message: 'User ditolak dan tidak dapat login ke sistem',
       };
     } catch (error) {
       const err = new Error(error.message);

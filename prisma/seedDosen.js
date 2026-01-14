@@ -7,26 +7,38 @@ const ListDosen = [
   {
     nama: 'Inneke Victor, PhD',
     email: 'ivictor@unikadelasalle.ac.id',
+    telepon: '08123456789',
     fakultasKode: 'Teknik',
     prodiNama: 'Teknik Industri',
+    status: 'AKTIF',
+    verifiedAt: new Date(),
   },
   {
     nama: 'Margie Christanty Poluan, S.E.,M.S.A',
     email: 'mpoluan@unikadelasalle.ac.id',
+    telepon: '08223456789',
     fakultasKode: 'FEB',
     prodiNama: 'Akuntansi',
+    status: 'AKTIF',
+    verifiedAt: new Date(),
   },
   {
     nama: 'Steify M. E. W. Sepang, S.E., M.Si., Ak., C.A',
     email: 'ssepang@unikadelasalle.ac.id',
+    telepon: '08323456789',
     fakultasKode: 'FEB',
     prodiNama: 'Akuntansi',
+    status: 'AKTIF',
+    verifiedAt: new Date(),
   },
   {
     nama: 'Deiby N. F. Tiwow, S.Pd., M.Pd',
     email: 'dtiwow@unikadelasalle.ac.id',
+    telepon: '08423456789',
     fakultasKode: 'PGSD',
     prodiNama: 'Pendidikan Guru Sekolah Dasar',
+    status: 'AKTIF',
+    verifiedAt: new Date(),
   },
 ];
 
@@ -83,6 +95,9 @@ async function main() {
         email: d.email,
         password: hashedPassword,
         nama: d.nama,
+        telepon: d.telepon,
+        status: d.status,
+        verifiedAt: d.verifiedAt,
         role: 'DOSEN',
         fakultasId: fakultas.id,
         prodiId: prodi.id,
@@ -93,7 +108,7 @@ async function main() {
     createdCount++;
   }
 
-  console.log(`\n✨ Seeding Dosen selesai!`);
+  console.log('\n✨ Seeding Dosen selesai!');
   console.log(`   Created: ${createdCount}`);
   console.log(`   Skipped: ${skippedCount}`);
 }

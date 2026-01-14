@@ -375,9 +375,11 @@ export class ExportService {
           kategoriPenilaian: {
             include: {
               kriteria: true,
-              pemenang: { select: { namaProduk: true } },
+              pemenang: { select: { namaProduk: true, nomorBooth: true } },
+              penilai: { select: { nama: true } },
             },
           },
+          sponsor: true,
         },
       });
 
@@ -388,43 +390,151 @@ export class ExportService {
       }
 
       const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'UPT Pusat Inovasi dan Kewirausahaan';
+      workbook.created = new Date();
 
-      // Sheet 1: Info Event
-      const infoSheet = workbook.addWorksheet('Info Event');
-      infoSheet.mergeCells('A1:B1');
-      infoSheet.getCell('A1').value = `LAPORAN EVENT: ${event.nama}`;
-      infoSheet.getCell('A1').font = { size: 14, bold: true };
-      infoSheet.addRow([]);
+      // Calculate statistics
+      const approvedCount = event.usaha.filter(
+        (u) => u.status === 'DISETUJUI'
+      ).length;
+      const pendingCount = event.usaha.filter(
+        (u) => u.status === 'PENDING'
+      ).length;
+      const rejectedCount = event.usaha.filter(
+        (u) => u.status === 'DITOLAK'
+      ).length;
+      const mahasiswaCount = event.usaha.filter(
+        (u) => u.tipeUsaha === 'MAHASISWA'
+      ).length;
+      const umkmCount = event.usaha.filter(
+        (u) => u.tipeUsaha === 'UMKM_LUAR'
+      ).length;
 
+      // Faculty distribution
+      const fakultasDistribution = {};
+      event.usaha.forEach((u) => {
+        const fakultas = u.fakultas?.nama || 'Umum/Eksternal';
+        fakultasDistribution[fakultas] =
+          (fakultasDistribution[fakultas] || 0) + 1;
+      });
+
+      // ========== SHEET 1: RINGKASAN ==========
+      const summarySheet = workbook.addWorksheet('Ringkasan');
+
+      // Header
+      summarySheet.mergeCells('A1:D1');
+      summarySheet.getCell('A1').value = 'UPT PUSAT INOVASI DAN KEWIRAUSAHAAN';
+      summarySheet.getCell('A1').font = { size: 12, bold: true };
+      summarySheet.getCell('A1').alignment = { horizontal: 'center' };
+
+      summarySheet.mergeCells('A2:D2');
+      summarySheet.getCell('A2').value =
+        'Universitas Katolik De La Salle Manado';
+      summarySheet.getCell('A2').alignment = { horizontal: 'center' };
+
+      summarySheet.addRow([]);
+
+      summarySheet.mergeCells('A4:D4');
+      summarySheet.getCell('A4').value = `LAPORAN EVENT: ${event.nama}`;
+      summarySheet.getCell('A4').font = { size: 14, bold: true };
+      summarySheet.getCell('A4').fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF174c4e' },
+      };
+      summarySheet.getCell('A4').font = {
+        size: 14,
+        bold: true,
+        color: { argb: 'FFFFFFFF' },
+      };
+      summarySheet.getCell('A4').alignment = { horizontal: 'center' };
+
+      summarySheet.addRow([]);
+
+      // Info Event
       const infoData = [
         ['Semester', event.semester],
         ['Tahun Ajaran', event.tahunAjaran],
         [
-          'Tanggal Pelaksanaan',
-          new Date(event.tanggalPelaksanaan).toLocaleDateString('id-ID'),
+          'Hari/Tanggal',
+          new Date(event.tanggalPelaksanaan).toLocaleDateString('id-ID', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          }),
         ],
         ['Lokasi', event.lokasi],
+        ['Status Event', event.status],
         ['Kuota Peserta', event.kuotaPeserta],
+        [''],
+        ['STATISTIK PESERTA'],
         ['Total Peserta', event.usaha.length],
-        ['Status', event.status],
-        [
-          'Peserta Disetujui',
-          event.usaha.filter((u) => u.status === 'DISETUJUI').length,
-        ],
-        [
-          'Menunggu Persetujuan',
-          event.usaha.filter((u) => u.status === 'PENDING').length,
-        ],
+        ['Peserta Disetujui', approvedCount],
+        ['Menunggu Verifikasi', pendingCount],
+        ['Ditolak', rejectedCount],
+        [''],
+        ['KOMPOSISI PESERTA'],
+        ['Mahasiswa', mahasiswaCount],
+        ['UMKM Luar', umkmCount],
+        [''],
+        ['KATEGORI PENILAIAN', event.kategoriPenilaian.length],
+        ['SPONSOR', event.sponsor?.length || 0],
       ];
 
       infoData.forEach(([label, value]) => {
-        const row = infoSheet.addRow([label, value]);
-        row.getCell(1).font = { bold: true };
+        if (label === '') {
+          summarySheet.addRow([]);
+        } else if (value === undefined) {
+          const row = summarySheet.addRow([label]);
+          row.getCell(1).font = { bold: true, size: 11 };
+          row.getCell(1).fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFf0f0f0' },
+          };
+        } else {
+          const row = summarySheet.addRow([label, value]);
+          row.getCell(1).font = { bold: true };
+        }
       });
 
-      infoSheet.columns = [{ width: 25 }, { width: 40 }];
+      summarySheet.columns = [{ width: 25 }, { width: 40 }];
 
-      // Sheet 2: Daftar Peserta (Enhanced)
+      // ========== SHEET 2: DISTRIBUSI FAKULTAS ==========
+      const fakultasSheet = workbook.addWorksheet('Distribusi Fakultas');
+      const fakultasHeader = fakultasSheet.addRow([
+        'No',
+        'Fakultas',
+        'Jumlah Peserta',
+        'Persentase',
+      ]);
+      fakultasHeader.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      fakultasHeader.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF174c4e' },
+      };
+
+      Object.entries(fakultasDistribution)
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([fakultas, count], index) => {
+          fakultasSheet.addRow([
+            index + 1,
+            fakultas,
+            count,
+            `${((count / (event.usaha.length || 1)) * 100).toFixed(1)}%`,
+          ]);
+        });
+
+      fakultasSheet.columns = [
+        { width: 5 },
+        { width: 35 },
+        { width: 15 },
+        { width: 12 },
+      ];
+
+      // ========== SHEET 3: DAFTAR PESERTA ==========
       const pesertaSheet = workbook.addWorksheet('Daftar Peserta');
       const pesertaHeader = pesertaSheet.addRow([
         'No',
@@ -438,7 +548,6 @@ export class ExportService {
         'Fakultas',
         'Prodi',
         'Pembimbing',
-        'Anggota',
         'Status',
       ]);
 
@@ -462,7 +571,6 @@ export class ExportService {
           usaha.fakultas?.nama || '-',
           usaha.prodi?.nama || '-',
           usaha.pembimbing?.nama || '-',
-          usaha.anggota?.map((anggota) => anggota.nama).join(', ') || '-',
           usaha.status,
         ]);
       });
@@ -476,48 +584,176 @@ export class ExportService {
         { width: 20 },
         { width: 25 },
         { width: 15 },
-        { width: 15 },
         { width: 20 },
         { width: 20 },
-        { width: 12 },
+        { width: 20 },
         { width: 12 },
       ];
 
-      // Sheet 3: Kategori Penilaian
-      if (event.kategoriPenilaian.length > 0) {
-        const penilaianSheet = workbook.addWorksheet('Kategori Penilaian');
-        const penilaianHeader = penilaianSheet.addRow([
-          'No',
-          'Kategori',
-          'Deskripsi',
-          'Pemenang',
-          'Jumlah Kriteria',
+      // ========== SHEET 4+: HASIL PENILAIAN PER KATEGORI ==========
+      for (const kategori of event.kategoriPenilaian) {
+        const sheetName = `Penilaian - ${kategori.nama.substring(0, 20)}`;
+        const scoreSheet = workbook.addWorksheet(sheetName);
+
+        // Header info
+        scoreSheet.mergeCells('A1:E1');
+        scoreSheet.getCell('A1').value = `Kategori: ${kategori.nama}`;
+        scoreSheet.getCell('A1').font = { size: 12, bold: true };
+
+        if (kategori.deskripsi) {
+          scoreSheet.mergeCells('A2:E2');
+          scoreSheet.getCell('A2').value = kategori.deskripsi;
+        }
+
+        scoreSheet.addRow([
+          'Penilai:',
+          kategori.penilai.map((p) => p.nama).join(', ') || '-',
         ]);
 
-        penilaianHeader.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-        penilaianHeader.fill = {
+        if (kategori.pemenang) {
+          const winnerRow = scoreSheet.addRow([
+            '🏆 PEMENANG:',
+            kategori.pemenang.namaProduk,
+          ]);
+          winnerRow.getCell(1).font = { bold: true };
+          winnerRow.getCell(2).font = { bold: true };
+          winnerRow.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFffd700' },
+          };
+        }
+
+        scoreSheet.addRow([]);
+
+        // Kriteria
+        const kriteriaRow = scoreSheet.addRow([
+          'Kriteria:',
+          ...kategori.kriteria.map((k) => `${k.nama} (${k.bobot}%)`),
+        ]);
+        kriteriaRow.font = { bold: true };
+
+        scoreSheet.addRow([]);
+
+        // Get scores for this category
+        const businesses = event.usaha.filter(
+          (u) => u.status === 'DISETUJUI' && u.tipeUsaha === 'MAHASISWA'
+        );
+        const businessScores = [];
+
+        for (const business of businesses) {
+          const scores = await prisma.nilaiPenilaian.findMany({
+            where: { usahaId: business.id, kategoriId: kategori.id },
+          });
+
+          let totalScore = 0;
+          const scoreDetails = [];
+
+          kategori.kriteria.forEach((kriteria) => {
+            const score = scores.find((s) => s.kriteriaId === kriteria.id);
+            const nilai = score?.nilai || 0;
+            const weightedScore = (nilai * kriteria.bobot) / 100;
+            totalScore += weightedScore;
+            scoreDetails.push(nilai);
+          });
+
+          businessScores.push({
+            business,
+            totalScore,
+            scoreDetails,
+          });
+        }
+
+        businessScores.sort((a, b) => b.totalScore - a.totalScore);
+
+        // Score table header
+        const scoreHeader = scoreSheet.addRow([
+          'Rank',
+          'Nama Produk',
+          'Pemilik',
+          'Booth',
+          ...kategori.kriteria.map((k) => k.nama),
+          'Total Nilai',
+        ]);
+        scoreHeader.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        scoreHeader.fill = {
           type: 'pattern',
           pattern: 'solid',
           fgColor: { argb: 'FF174c4e' },
         };
 
-        event.kategoriPenilaian.forEach((kategori, index) => {
-          penilaianSheet.addRow([
+        // Score data
+        businessScores.forEach((item, index) => {
+          scoreSheet.addRow([
             index + 1,
-            kategori.nama,
-            kategori.deskripsi || '-',
-            kategori.pemenang?.namaProduk || 'Belum ditentukan',
-            kategori.kriteria.length,
+            item.business.namaProduk,
+            item.business.pemilik.nama,
+            item.business.nomorBooth || '-',
+            ...item.scoreDetails,
+            item.totalScore.toFixed(2),
           ]);
         });
 
-        penilaianSheet.columns = [
-          { width: 5 },
+        scoreSheet.columns = [
+          { width: 6 },
           { width: 25 },
-          { width: 35 },
-          { width: 25 },
-          { width: 15 },
+          { width: 20 },
+          { width: 8 },
+          ...kategori.kriteria.map(() => ({ width: 12 })),
+          { width: 12 },
         ];
+      }
+
+      // ========== SHEET: DAFTAR PEMENANG ==========
+      const winners = event.kategoriPenilaian.filter((k) => k.pemenang);
+      if (winners.length > 0) {
+        const winnerSheet = workbook.addWorksheet('Daftar Pemenang');
+        const winnerHeader = winnerSheet.addRow([
+          'No',
+          'Kategori',
+          'Pemenang',
+          'Booth',
+        ]);
+        winnerHeader.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        winnerHeader.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFffd700' },
+        };
+
+        winners.forEach((k, index) => {
+          winnerSheet.addRow([
+            index + 1,
+            k.nama,
+            k.pemenang.namaProduk,
+            k.pemenang.nomorBooth || '-',
+          ]);
+        });
+
+        winnerSheet.columns = [
+          { width: 5 },
+          { width: 30 },
+          { width: 30 },
+          { width: 10 },
+        ];
+      }
+
+      // ========== SHEET: SPONSOR ==========
+      if (event.sponsor && event.sponsor.length > 0) {
+        const sponsorSheet = workbook.addWorksheet('Sponsor');
+        const sponsorHeader = sponsorSheet.addRow(['No', 'Nama Sponsor']);
+        sponsorHeader.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        sponsorHeader.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF174c4e' },
+        };
+
+        event.sponsor.forEach((s, index) => {
+          sponsorSheet.addRow([index + 1, s.nama]);
+        });
+
+        sponsorSheet.columns = [{ width: 5 }, { width: 40 }];
       }
 
       return await workbook.xlsx.writeBuffer();
@@ -530,22 +766,27 @@ export class ExportService {
 
   async exportEventToPDF(eventId) {
     try {
+      // Fetch comprehensive event data
       const event = await prisma.eventMarketplace.findUnique({
         where: { id: eventId },
         include: {
           usaha: {
             include: {
-              pemilik: { select: { nama: true } },
+              pemilik: { select: { nama: true, email: true } },
               pembimbing: { select: { nama: true } },
               fakultas: { select: { nama: true } },
+              prodi: { select: { nama: true } },
             },
             orderBy: { nomorBooth: 'asc' },
           },
           kategoriPenilaian: {
             include: {
-              pemenang: { select: { namaProduk: true } },
+              kriteria: true,
+              pemenang: { select: { namaProduk: true, nomorBooth: true } },
+              penilai: { select: { nama: true } },
             },
           },
+          sponsor: true,
         },
       });
 
@@ -555,12 +796,74 @@ export class ExportService {
         throw error;
       }
 
+      // Calculate statistics
       const approvedCount = event.usaha.filter(
         (u) => u.status === 'DISETUJUI'
       ).length;
       const pendingCount = event.usaha.filter(
         (u) => u.status === 'PENDING'
       ).length;
+      const rejectedCount = event.usaha.filter(
+        (u) => u.status === 'DITOLAK'
+      ).length;
+      const mahasiswaCount = event.usaha.filter(
+        (u) => u.tipeUsaha === 'MAHASISWA'
+      ).length;
+      const umkmCount = event.usaha.filter(
+        (u) => u.tipeUsaha === 'UMKM_LUAR'
+      ).length;
+
+      // Calculate faculty distribution
+      const fakultasDistribution = {};
+      event.usaha.forEach((u) => {
+        const fakultas = u.fakultas?.nama || 'Umum/Eksternal';
+        fakultasDistribution[fakultas] =
+          (fakultasDistribution[fakultas] || 0) + 1;
+      });
+
+      // Get assessment scores for each category
+      const assessmentResults = [];
+      for (const kategori of event.kategoriPenilaian) {
+        const businesses = event.usaha.filter(
+          (u) => u.status === 'DISETUJUI' && u.tipeUsaha === 'MAHASISWA'
+        );
+        const businessScores = [];
+
+        for (const business of businesses) {
+          const scores = await prisma.nilaiPenilaian.findMany({
+            where: { usahaId: business.id, kategoriId: kategori.id },
+          });
+
+          let totalScore = 0;
+          const scoreDetails = [];
+
+          kategori.kriteria.forEach((kriteria) => {
+            const score = scores.find((s) => s.kriteriaId === kriteria.id);
+            const nilai = score?.nilai || 0;
+            const weightedScore = (nilai * kriteria.bobot) / 100;
+            totalScore += weightedScore;
+            scoreDetails.push({
+              kriteriaId: kriteria.id,
+              kriteriaNama: kriteria.nama,
+              nilai,
+              bobot: kriteria.bobot,
+              weightedScore,
+            });
+          });
+
+          businessScores.push({
+            business,
+            totalScore,
+            scoreDetails,
+          });
+        }
+
+        businessScores.sort((a, b) => b.totalScore - a.totalScore);
+        assessmentResults.push({
+          kategori,
+          scores: businessScores,
+        });
+      }
 
       return new Promise((resolve, reject) => {
         const doc = new PDFDocument({
@@ -574,45 +877,103 @@ export class ExportService {
         doc.on('end', () => resolve(Buffer.concat(chunks)));
         doc.on('error', reject);
 
-        // Header
-        this.addPdfHeader(doc, 'LAPORAN EVENT MARKETPLACE', event.nama);
+        // ========== COVER PAGE ==========
+        // Letterhead
+        doc.fontSize(11).font('Helvetica-Bold').fillColor('#174c4e');
+        doc.text('UPT PUSAT INOVASI DAN KEWIRAUSAHAAN', 50, 50, {
+          align: 'center',
+          width: doc.page.width - 100,
+        });
+        doc.fontSize(10).font('Helvetica').fillColor('#333333');
+        doc.text('Universitas Katolik De La Salle Manado', 50, 65, {
+          align: 'center',
+          width: doc.page.width - 100,
+        });
+        doc.text('Jl. Kairagi I, Kombos Timur, Manado 95253', 50, 78, {
+          align: 'center',
+          width: doc.page.width - 100,
+        });
 
-        doc.y = 100;
-
-        // Event Details Box
-        doc.fontSize(11).font('Helvetica');
-        const detailsY = doc.y;
-
+        // Divider line
+        doc.strokeColor('#174c4e').lineWidth(2);
         doc
-          .fillColor('#f8f9fa')
-          .rect(50, detailsY, doc.page.width - 100, 80)
-          .fill();
+          .moveTo(50, 95)
+          .lineTo(doc.page.width - 50, 95)
+          .stroke();
+        doc.strokeColor('#fba635').lineWidth(1);
         doc
-          .strokeColor('#e0e0e0')
-          .rect(50, detailsY, doc.page.width - 100, 80)
+          .moveTo(50, 98)
+          .lineTo(doc.page.width - 50, 98)
           .stroke();
 
-        doc.fillColor('#333333');
-        doc.text(`Semester: ${event.semester}`, 60, detailsY + 10);
-        doc.text(`Tahun Ajaran: ${event.tahunAjaran}`, 60, detailsY + 25);
+        // Title
+        doc.y = 140;
+        doc.fontSize(18).font('Helvetica-Bold').fillColor('#174c4e');
+        doc.text('LAPORAN PELAKSANAAN', 50, doc.y, {
+          align: 'center',
+          width: doc.page.width - 100,
+        });
+        doc.text('EVENT MARKETPLACE', 50, doc.y + 5, {
+          align: 'center',
+          width: doc.page.width - 100,
+        });
+
+        doc.y += 50;
+
+        // Event Name Box
+        doc
+          .fillColor('#174c4e')
+          .rect(60, doc.y, doc.page.width - 120, 50)
+          .fill();
+        doc.fillColor('#ffffff').fontSize(14).font('Helvetica-Bold');
+        doc.text(event.nama.toUpperCase(), 70, doc.y + 15, {
+          align: 'center',
+          width: doc.page.width - 140,
+        });
+
+        doc.y += 80;
+
+        // Event Info Summary
+        doc.fillColor('#333333').fontSize(11).font('Helvetica');
+        const infoY = doc.y;
+        doc.text('Semester', 120, infoY);
+        doc.text(`: ${event.semester}`, 220, infoY);
+        doc.text('Tahun Ajaran', 120, infoY + 18);
+        doc.text(`: ${event.tahunAjaran}`, 220, infoY + 18);
+        doc.text('Hari/Tanggal', 120, infoY + 36);
         doc.text(
-          `Tanggal: ${new Date(event.tanggalPelaksanaan).toLocaleDateString('id-ID')}`,
-          60,
-          detailsY + 40
+          `: ${new Date(event.tanggalPelaksanaan).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`,
+          220,
+          infoY + 36
         );
-        doc.text(`Lokasi: ${event.lokasi}`, 60, detailsY + 55);
+        doc.text('Lokasi', 120, infoY + 54);
+        doc.text(`: ${event.lokasi}`, 220, infoY + 54);
+        doc.text('Status Event', 120, infoY + 72);
+        doc.text(`: ${event.status}`, 220, infoY + 72);
 
-        doc.text(`Status: ${event.status}`, 300, detailsY + 10);
-        doc.text(`Kuota: ${event.kuotaPeserta}`, 300, detailsY + 25);
-        doc.text(`Total Peserta: ${event.usaha.length}`, 300, detailsY + 40);
+        // Footer of cover
+        doc.y = doc.page.height - 120;
+        doc.fontSize(10).fillColor('#666666');
+        doc.text(
+          `Dokumen ini dicetak secara otomatis pada ${new Date().toLocaleString('id-ID')}`,
+          50,
+          doc.y,
+          { align: 'center', width: doc.page.width - 100 }
+        );
 
-        doc.y = detailsY + 100;
+        // ========== PAGE 2: RINGKASAN EKSEKUTIF ==========
+        doc.addPage();
 
-        // Summary boxes
+        doc.fontSize(14).font('Helvetica-Bold').fillColor('#174c4e');
+        doc.text('I. RINGKASAN EKSEKUTIF', 50, 50);
+        doc.moveDown();
+
+        // Summary Statistics
+        doc.y = 80;
         this.addSummaryBox(doc, [
           { label: 'Total Peserta', value: event.usaha.length },
-          { label: 'Disetujui', value: approvedCount },
-          { label: 'Menunggu', value: pendingCount },
+          { label: 'Peserta Disetujui', value: approvedCount },
+          { label: 'Menunggu Verifikasi', value: pendingCount },
           {
             label: 'Kategori Penilaian',
             value: event.kategoriPenilaian.length,
@@ -621,12 +982,56 @@ export class ExportService {
 
         doc.moveDown();
 
-        // Participants Table
+        // Participant Type Statistics
         doc.fontSize(12).font('Helvetica-Bold').fillColor('#174c4e');
-        doc.text('Daftar Peserta', 50);
+        doc.text('Komposisi Peserta:', 50);
         doc.moveDown(0.5);
 
-        const headers = [
+        const compHeaders = ['Jenis Peserta', 'Jumlah', 'Persentase'];
+        const compRows = [
+          [
+            'Mahasiswa',
+            mahasiswaCount,
+            `${((mahasiswaCount / (event.usaha.length || 1)) * 100).toFixed(1)}%`,
+          ],
+          [
+            'UMKM Luar',
+            umkmCount,
+            `${((umkmCount / (event.usaha.length || 1)) * 100).toFixed(1)}%`,
+          ],
+        ];
+        this.drawTable(doc, compHeaders, compRows, {
+          columnWidths: [200, 100, 100],
+        });
+
+        doc.moveDown(2);
+
+        // Faculty Distribution
+        doc.fontSize(12).font('Helvetica-Bold').fillColor('#174c4e');
+        doc.text('Distribusi Peserta per Fakultas:', 50);
+        doc.moveDown(0.5);
+
+        const fakultasHeaders = ['Fakultas', 'Jumlah Peserta', 'Persentase'];
+        const fakultasRows = Object.entries(fakultasDistribution)
+          .sort((a, b) => b[1] - a[1])
+          .map(([fakultas, count]) => [
+            fakultas,
+            count,
+            `${((count / (event.usaha.length || 1)) * 100).toFixed(1)}%`,
+          ]);
+
+        this.drawTable(doc, fakultasHeaders, fakultasRows, {
+          columnWidths: [250, 100, 100],
+        });
+
+        // ========== PAGE 3+: DAFTAR PESERTA ==========
+        doc.addPage();
+
+        doc.fontSize(14).font('Helvetica-Bold').fillColor('#174c4e');
+        doc.text('II. DAFTAR PESERTA', 50, 50);
+        doc.moveDown();
+
+        const pesertaHeaders = [
           'No',
           'Booth',
           'Nama Produk',
@@ -634,42 +1039,154 @@ export class ExportService {
           'Fakultas',
           'Status',
         ];
-        const rows = event.usaha.map((u, i) => [
+        const pesertaRows = event.usaha.map((u, i) => [
           i + 1,
           u.nomorBooth || '-',
           u.namaProduk,
           u.pemilik.nama,
-          u.fakultas?.nama || '-',
+          u.fakultas?.nama || 'Eksternal',
           u.status,
         ]);
 
-        this.drawTable(doc, headers, rows, {
-          columnWidths: [30, 40, 150, 100, 100, 70],
+        doc.y = 80;
+        this.drawTable(doc, pesertaHeaders, pesertaRows, {
+          columnWidths: [30, 40, 150, 110, 90, 70],
         });
 
-        // Winners section
+        // ========== PAGE 4+: DETAIL PENILAIAN ==========
+        if (assessmentResults.length > 0) {
+          doc.addPage();
+
+          doc.fontSize(14).font('Helvetica-Bold').fillColor('#174c4e');
+          doc.text('III. HASIL PENILAIAN', 50, 50);
+
+          let pageY = 80;
+
+          for (const result of assessmentResults) {
+            const { kategori, scores } = result;
+
+            // Check if we need a new page
+            if (pageY > doc.page.height - 200) {
+              doc.addPage();
+              pageY = 50;
+            }
+
+            doc.y = pageY;
+
+            // Category Header
+            doc.fontSize(12).font('Helvetica-Bold').fillColor('#174c4e');
+            doc.text(`Kategori: ${kategori.nama}`, 50, doc.y);
+
+            if (kategori.deskripsi) {
+              doc.fontSize(9).font('Helvetica').fillColor('#666666');
+              doc.text(kategori.deskripsi, 50, doc.y + 5);
+            }
+
+            doc.moveDown(0.5);
+
+            // Winner highlight
+            if (kategori.pemenang) {
+              doc.y += 5;
+              doc
+                .fillColor('#ffd700')
+                .rect(50, doc.y, doc.page.width - 100, 25)
+                .fill();
+              doc
+                .strokeColor('#e0b000')
+                .rect(50, doc.y, doc.page.width - 100, 25)
+                .stroke();
+              doc.fillColor('#333333').fontSize(10).font('Helvetica-Bold');
+              doc.text(
+                `🏆 PEMENANG: ${kategori.pemenang.namaProduk} (Booth: ${kategori.pemenang.nomorBooth || '-'})`,
+                60,
+                doc.y + 7
+              );
+              doc.y += 35;
+            }
+
+            doc.moveDown(0.3);
+
+            // Kriteria list
+            doc.fontSize(9).font('Helvetica').fillColor('#333333');
+            doc.text(
+              `Kriteria: ${kategori.kriteria.map((k) => `${k.nama} (${k.bobot}%)`).join(', ')}`,
+              50
+            );
+            doc.text(
+              `Penilai: ${kategori.penilai.map((p) => p.nama).join(', ') || '-'}`,
+              50
+            );
+
+            doc.moveDown(0.5);
+
+            // Scores table
+            if (scores.length > 0) {
+              const scoreHeaders = ['Rank', 'Produk', 'Pemilik', 'Total Nilai'];
+              const scoreRows = scores
+                .slice(0, 10)
+                .map((item, i) => [
+                  i + 1,
+                  item.business.namaProduk,
+                  item.business.pemilik.nama,
+                  item.totalScore.toFixed(2),
+                ]);
+
+              this.drawTable(doc, scoreHeaders, scoreRows, {
+                columnWidths: [40, 200, 150, 80],
+                fontSize: 8,
+              });
+            } else {
+              doc.fontSize(9).font('Helvetica').fillColor('#666666');
+              doc.text('Belum ada peserta yang dinilai pada kategori ini.', 50);
+            }
+
+            pageY = doc.y + 30;
+          }
+        }
+
+        // ========== DAFTAR PEMENANG FINAL ==========
         const winners = event.kategoriPenilaian.filter((k) => k.pemenang);
         if (winners.length > 0) {
           doc.addPage();
-          doc.y = 50;
 
-          doc.fontSize(12).font('Helvetica-Bold').fillColor('#174c4e');
-          doc.text('Daftar Pemenang', 50);
-          doc.moveDown(0.5);
+          doc.fontSize(14).font('Helvetica-Bold').fillColor('#174c4e');
+          doc.text('IV. DAFTAR PEMENANG', 50, 50);
+          doc.moveDown();
 
-          const winnerHeaders = ['No', 'Kategori', 'Pemenang'];
+          doc.y = 80;
+
+          const winnerHeaders = ['No', 'Kategori', 'Pemenang', 'Booth'];
           const winnerRows = winners.map((k, i) => [
             i + 1,
             k.nama,
             k.pemenang.namaProduk,
+            k.pemenang.nomorBooth || '-',
           ]);
 
           this.drawTable(doc, winnerHeaders, winnerRows, {
-            columnWidths: [40, 220, 230],
+            columnWidths: [40, 200, 180, 70],
           });
         }
 
-        // Footer
+        // ========== SPONSOR PAGE ==========
+        if (event.sponsor && event.sponsor.length > 0) {
+          doc.addPage();
+
+          doc.fontSize(14).font('Helvetica-Bold').fillColor('#174c4e');
+          doc.text('V. DAFTAR SPONSOR', 50, 50);
+          doc.moveDown();
+
+          doc.y = 80;
+
+          const sponsorHeaders = ['No', 'Nama Sponsor'];
+          const sponsorRows = event.sponsor.map((s, i) => [i + 1, s.nama]);
+
+          this.drawTable(doc, sponsorHeaders, sponsorRows, {
+            columnWidths: [40, 400],
+          });
+        }
+
+        // ========== FOOTER ON ALL PAGES ==========
         // this.addPdfFooter(doc);
 
         doc.end();

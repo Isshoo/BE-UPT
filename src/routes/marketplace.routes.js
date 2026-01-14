@@ -91,7 +91,7 @@ router.delete(
 // Admin only routes - Business management
 router.get(
   '/:eventId/businesses',
-  AuthMiddleware.authorize('ADMIN', 'DOSEN'),
+  AuthMiddleware.authorize('ADMIN', 'DOSEN', 'WR_II'),
   marketplaceController.getBusinessesByEvent
 );
 

@@ -8,7 +8,7 @@ const exportController = new ExportController();
 
 // All routes require admin authentication
 router.use(AuthMiddleware.authenticate);
-router.use(AuthMiddleware.authorize('ADMIN'));
+router.use(AuthMiddleware.authorize('ADMIN', 'WR_II'));
 router.use(exportLimiter);
 
 // Export users

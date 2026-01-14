@@ -11,6 +11,7 @@ enum Role {
   ADMIN
   DOSEN
   USER
+  WR_II
 }
 
 enum StatusEvent {
@@ -29,6 +30,12 @@ enum StatusPendaftaran {
   DISETUJUI
   DITOLAK
   DIBATALKAN
+}
+
+enum StatusUser {
+  AKTIF
+  MENUNGGU
+  DITOLAK
 }
 
 // ==================== MASTER DATA ====================
@@ -66,15 +73,19 @@ model Prodi {
 // ==================== USER ====================
 
 model User {
-  id         String   @id @default(cuid())
-  email      String   @unique
+  id         String     @id @default(cuid())
+  email      String     @unique
   password   String
   nama       String
-  role       Role     @default(USER)
+  telepon    String
+  role       Role       @default(USER)
+  status     StatusUser @default(MENUNGGU)
+  verifiedAt DateTime?  @db.Timestamptz
+  verifiedBy String?    // ID admin yang memverifikasi
   fakultasId String?
   prodiId    String?
-  createdAt  DateTime @default(now()) @db.Timestamptz
-  updatedAt  DateTime @updatedAt      @db.Timestamptz
+  createdAt  DateTime   @default(now()) @db.Timestamptz
+  updatedAt  DateTime   @updatedAt      @db.Timestamptz
 
   // Relations
   fakultas             Fakultas?            @relation(fields: [fakultasId], references: [id])

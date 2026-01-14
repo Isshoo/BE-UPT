@@ -59,7 +59,7 @@ export class UserController {
       });
 
       // Extract validated query params
-      const { role, page, limit, search } = req.query;
+      const { role, page, limit, search, status } = req.query;
 
       // Panggil service
       const result = await this.userService.getUsers({
@@ -67,6 +67,7 @@ export class UserController {
         page,
         limit,
         search,
+        status,
       });
 
       // Return success response
@@ -117,19 +118,29 @@ export class UserController {
     try {
       // Validasi dengan Zod schema + Controller validation
       await validateRequest(req, {
-        required: ['email', 'password', 'nama'],
-        allowed: ['email', 'password', 'nama', 'role', 'fakultasId', 'prodiId'],
+        required: ['email', 'password', 'nama', 'telepon'],
+        allowed: [
+          'email',
+          'password',
+          'nama',
+          'role',
+          'fakultasId',
+          'prodiId',
+          'telepon',
+        ],
         schema: createUserSchema,
       });
 
       // Extract validated data (sudah divalidasi dan di-sanitize oleh Zod)
-      const { email, password, nama, role, fakultasId, prodiId } = req.body;
+      const { email, password, nama, telepon, role, fakultasId, prodiId } =
+        req.body;
 
       // Panggil service
       const user = await this.userService.createUser({
         email,
         password,
         nama,
+        telepon,
         role,
         fakultasId,
         prodiId,
@@ -152,17 +163,18 @@ export class UserController {
       // Validasi dengan Zod schema + Controller validation
       await validateRequest(req, {
         required: [],
-        allowed: ['nama', 'email', 'fakultasId', 'prodiId'],
+        allowed: ['nama', 'email', 'fakultasId', 'prodiId', 'telepon'],
         schema: updateUserSchema,
       });
 
       // Validasi business rule: Minimal 1 field harus diisi untuk update
-      const { nama, email, fakultasId, prodiId } = req.body;
+      const { nama, email, fakultasId, prodiId, telepon } = req.body;
       const hasAnyField =
         nama !== undefined ||
         email !== undefined ||
         fakultasId !== undefined ||
-        prodiId !== undefined;
+        prodiId !== undefined ||
+        telepon !== undefined;
 
       if (!hasAnyField) {
         return ApiResponse.error(
@@ -188,6 +200,7 @@ export class UserController {
         email,
         fakultasId,
         prodiId,
+        telepon,
       });
 
       // Return success response
@@ -262,6 +275,47 @@ export class UserController {
 
       // Return success response
       return ApiResponse.success(res, stats, 'Statistik user berhasil diambil');
+    } catch (error) {
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
+    }
+  };
+
+  verifyUser = async (req, res) => {
+    try {
+      // Extract validated params
+      const { id } = req.params;
+      const adminId = req.user.id;
+
+      // Panggil service
+      const result = await this.userService.verifyUser(id, adminId);
+
+      // Return success response
+      return ApiResponse.success(res, result, result.message);
+    } catch (error) {
+      return ApiResponse.error(
+        res,
+        error.message || 'Terjadi kesalahan',
+        error.statusCode || 500,
+        error.errors || null
+      );
+    }
+  };
+
+  rejectUser = async (req, res) => {
+    try {
+      // Extract validated params
+      const { id } = req.params;
+
+      // Panggil service
+      const result = await this.userService.rejectUser(id);
+
+      // Return success response
+      return ApiResponse.success(res, result, result.message);
     } catch (error) {
       return ApiResponse.error(
         res,

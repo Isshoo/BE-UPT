@@ -17,26 +17,36 @@ export class AuthController {
     try {
       // Validasi dengan Zod schema + Controller validation
       await validateRequest(req, {
-        required: ['email', 'password', 'nama'],
-        allowed: ['email', 'password', 'nama', 'role', 'fakultasId', 'prodiId'],
+        required: ['email', 'password', 'nama', 'telepon'],
+        allowed: [
+          'email',
+          'password',
+          'nama',
+          'telepon',
+          'role',
+          'fakultasId',
+          'prodiId',
+        ],
         schema: registerSchema,
       });
 
       // Extract validated data (sudah divalidasi dan di-sanitize oleh Zod)
-      const { email, password, nama, role, fakultasId, prodiId } = req.body;
+      const { email, password, nama, telepon, role, fakultasId, prodiId } =
+        req.body;
 
       // Panggil service
       const result = await this.authService.register({
         email,
         password,
         nama,
+        telepon,
         role,
         fakultasId,
         prodiId,
       });
 
-      // Return success response
-      return ApiResponse.success(res, result, 'Registrasi berhasil.', 201);
+      // Return success response (tanpa token karena menunggu approval)
+      return ApiResponse.success(res, result, result.message, 201);
     } catch (error) {
       // Tampilkan detail errors jika ada (dari Zod validation)
       return ApiResponse.error(

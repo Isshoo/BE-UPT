@@ -17,5 +17,7 @@ router.post('/', userController.createUser);
 router.put('/:id', userController.updateUser);
 router.delete('/:id', userController.deleteUser);
 router.post('/:id/reset-password', userController.resetPassword);
+router.patch('/:id/verify', userController.verifyUser);
+router.patch('/:id/reject', userController.rejectUser);
 
 export default router;
